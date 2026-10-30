@@ -1,0 +1,14 @@
+# chara-q の GraphQL スキーマ（API の唯一の正）
+# gqlgen（apps/api）と GraphQL Code Generator（apps/web）の両方がこのディレクトリを読む。
+# CharacterSheet などの実際の型は、最初の Spec で追加する。
+
+"任意の JSON 値。システム固有のシート本体など、まだ型にしていないデータに使う"
+scalar JSON
+
+"RFC 3339 形式の日時"
+scalar Time
+
+type Query {
+  "API の疎通確認。正常なら \"ok\" を返す"
+  health: String!
+}

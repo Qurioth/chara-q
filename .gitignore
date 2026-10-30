@@ -1,0 +1,32 @@
+# 依存関係
+node_modules/
+.pnpm-store/
+
+# ビルド成果物
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+/apps/api/bin/
+
+# 環境変数（例の値だけを置く .env.example はコミットする）
+.env
+.env.*
+!.env.example
+
+# Task のキャッシュ
+.task/
+
+# ログ・OS・エディタ
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# テスト
+coverage/
+*.out

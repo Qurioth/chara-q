@@ -1,0 +1,8 @@
+packages:
+  - apps/web
+  - packages/*
+
+# 依存パッケージのインストールスクリプトは、許可したものだけ実行する
+allowBuilds:
+  sharp: false
+  unrs-resolver: false

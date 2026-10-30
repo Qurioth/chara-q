@@ -1,0 +1,38 @@
+# Vercel（Web）
+
+## 1. プロジェクト
+
+- GitHub の `Qurioth/chara-q` をインポートする。
+- **Root Directory**: `apps/web`
+- Framework Preset: Next.js
+- Install / Build Command は既定のまま（pnpm workspace を自動で検出する）。
+- Node.js のバージョンは 24.x にする。
+- pnpm のバージョンはルートの `package.json` の `packageManager` で指定している。
+  Vercel が使う pnpm のバージョンがこれと合わない場合は、環境変数
+  `ENABLE_EXPERIMENTAL_COREPACK=1` を設定する（設定時に動作を確認する）。
+
+## 2. 関係のない変更ではビルドしない
+
+Settings → Git → **Ignored Build Step** に次のコマンドを設定する。
+Root Directory（`apps/web`）で実行されるため、パスはそこからの相対パスで書く。
+
+```sh
+git diff --quiet HEAD^ HEAD -- . ../../schema ../../package.json ../../pnpm-workspace.yaml ../../pnpm-lock.yaml
+```
+
+- 終了コード 0（差分なし）ならビルドを省き、1（差分あり）ならビルドする。
+- `apps/api` だけの変更ではビルドされない。
+
+## 3. 環境変数
+
+| 名前 | 環境 | 値 |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Production | `https://<Cloud Run の URL>/graphql` |
+| `NEXT_PUBLIC_API_URL` | Preview | 本番 API か、プレビュー用の API の URL（Spec で決める） |
+
+- `NEXT_PUBLIC_` で始まる値はブラウザに公開される。シークレットは入れない。
+
+## 4. ドメイン
+
+- Vercel のドメイン（またはカスタムドメイン）が決まったら、API の `CORS_ALLOWED_ORIGINS` と
+  R2 の CORS に追加する。
