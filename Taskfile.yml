@@ -1,0 +1,183 @@
+# 開発タスクの入口。Task は組み込みのシェル（mvdan/sh）で動くので Windows でも同じ書き方で動く。
+# bash 専用の書き方は使わない。ツールは mise で入っている前提（先に `mise install` を実行する）。
+version: "3"
+
+vars:
+  API_DIR: apps/api
+  WEB_DIR: apps/web
+  WEB_PKG: "@chara-q/web"
+  # goose は依存が多いため、本体の go.mod ではなく tools/go.mod の tool で管理する
+  GOOSE: go tool -modfile=tools/go.mod goose
+  MIGRATIONS_DIR: db/migrations
+
+# apps/api/.env は api のタスクだけで読み込む（全体で読み込むと PORT などが web にも渡ってしまう）。
+# タスク単位の dotenv のパスは、そのタスクの dir からの相対パスになる。
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  setup:
+    desc: 初回セットアップ（.env の作成、依存パッケージのインストール）
+    cmds:
+      - task: env:init
+      - pnpm install
+      - task: setup:api
+
+  setup:api:
+    dir: "{{.API_DIR}}"
+    cmds:
+      - go mod download
+      - go mod download -modfile=tools/go.mod
+
+  env:init:
+    desc: .env.example から .env を作る（既にあれば何もしない）
+    cmds:
+      - test -f {{.API_DIR}}/.env || cp {{.API_DIR}}/.env.example {{.API_DIR}}/.env
+      - test -f {{.WEB_DIR}}/.env || cp {{.WEB_DIR}}/.env.example {{.WEB_DIR}}/.env
+
+  dev:
+    desc: api と web を起動する（先に `task db:up` が必要）
+    deps: [dev:api, dev:web]
+
+  dev:api:
+    desc: api を起動する
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - go run ./cmd/server
+
+  dev:web:
+    desc: web を起動する
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} dev
+
+  generate:
+    desc: すべての生成コードを更新する（gqlgen、sqlc、GraphQL Code Generator）
+    cmds:
+      - task: generate:api
+      - task: generate:web
+
+  generate:api:
+    desc: sqlc と gqlgen のコードを生成する
+    dir: "{{.API_DIR}}"
+    cmds:
+      - sqlc generate
+      - go tool gqlgen generate
+
+  generate:web:
+    desc: GraphQL Code Generator で web の型を生成する
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} codegen
+
+  check:generated:
+    desc: 生成コードを再生成し、コミット済みの内容と差分がないことを確認する
+    cmds:
+      - task: generate
+      - |
+        changes=$(git status --porcelain -- {{.API_DIR}} {{.WEB_DIR}}/src/gql)
+        if [ -n "$changes" ]; then
+          echo "生成コードがコミット済みの内容と一致しません。task generate を実行してコミットしてください:"
+          echo "$changes"
+          exit 1
+        fi
+
+  lint:
+    desc: api と web の静的チェック
+    cmds:
+      - task: lint:api
+      - task: lint:web
+
+  lint:api:
+    desc: gofmt / goimports、go vet、golangci-lint
+    dir: "{{.API_DIR}}"
+    cmds:
+      - golangci-lint fmt --diff ./...
+      - go vet ./...
+      - golangci-lint run ./...
+
+  lint:web:
+    desc: ESLint と型チェック
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} lint
+      - pnpm --filter {{.WEB_PKG}} typecheck
+
+  fmt:
+    desc: Go のコードを整形する
+    dir: "{{.API_DIR}}"
+    cmds:
+      - golangci-lint fmt ./...
+
+  test:
+    desc: テストを実行する（DB を使うテストには `task db:up` が必要）
+    cmds:
+      - task: test:api
+
+  test:api:
+    desc: api のテスト
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - go test ./...
+
+  build:
+    desc: api と web をビルドする
+    cmds:
+      - task: build:api
+      - task: build:web
+
+  build:api:
+    dir: "{{.API_DIR}}"
+    cmds:
+      - go build -o bin/server ./cmd/server
+
+  build:web:
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} build
+
+  docker:build:
+    desc: api の Docker イメージをビルドする
+    cmds:
+      - docker build -t chara-q-api:local {{.API_DIR}}
+
+  db:up:
+    desc: ローカルの Postgres と S3 互換ストレージを起動する
+    cmds:
+      - docker compose up -d --wait --quiet-pull
+
+  db:down:
+    desc: ローカルの Postgres と S3 互換ストレージを停止する（データは残る）
+    cmds:
+      - docker compose down
+
+  db:migrate:
+    desc: マイグレーションを最新まで適用する
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" up'
+
+  db:status:
+    desc: マイグレーションの適用状況を表示する
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" status'
+
+  db:reset:
+    desc: ローカル DB のマイグレーションをすべて戻してから最新まで適用し直す
+    prompt: ローカル DB のデータがすべて消えます。続けますか？
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" reset'
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" up'
+
+  db:new:
+    desc: "マイグレーションファイルを作る（例: task db:new -- create_character_sheets）"
+    dir: "{{.API_DIR}}"
+    requires:
+      vars: [CLI_ARGS]
+    cmds:
+      - "{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} -s create {{.CLI_ARGS}} sql"

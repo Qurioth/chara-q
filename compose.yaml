@@ -1,0 +1,61 @@
+# ローカル開発用のミドルウェア。本番は Neon（Postgres）と Cloudflare R2 を使う。
+# 認証情報はローカル専用の例の値（本番の値は置かない）。
+name: chara-q
+
+services:
+  postgres:
+    # Neon の新規プロジェクトの既定と同じメジャーバージョン
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: chara_q
+      POSTGRES_PASSWORD: chara_q
+      POSTGRES_DB: chara_q
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 以降のイメージはメジャーバージョンごとのサブディレクトリにデータを置く
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chara_q -d chara_q"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # R2 の代わりにする S3 互換ストレージ（MinIO はコミュニティ版のイメージ配布が終了したため RustFS を使う）
+  storage:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: chara_q
+      RUSTFS_SECRET_KEY: chara_q_secret
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "${STORAGE_PORT:-9000}:9000"
+      - "${STORAGE_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 開発用バケットを作る（作成済みなら何もしない）
+  storage-init:
+    image: amazon/aws-cli:2.39.2
+    depends_on:
+      storage:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: chara_q
+      AWS_SECRET_ACCESS_KEY: chara_q_secret
+      AWS_DEFAULT_REGION: auto
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        aws --endpoint-url http://storage:9000 s3api head-bucket --bucket chara-q-local 2>/dev/null
+        || aws --endpoint-url http://storage:9000 s3api create-bucket --bucket chara-q-local
+    restart: "no"
+
+volumes:
+  postgres-data:
+  storage-data:
