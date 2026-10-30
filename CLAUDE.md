@@ -72,3 +72,70 @@ infra/              クラウドのセットアップ手順（手順書のみ）
 5. `/speckit-implement` — 実装
 
 Spec Kit のスクリプトは PowerShell 版（`.specify/scripts/powershell/`）を使う。
+
+## コミットメッセージ
+
+Conventional Commits の形式で、要約と本文は日本語で書く。
+
+```
+<type>(<scope>): <要約>
+
+<本文：何を変えたか、なぜ変えたか>
+
+<フッター>
+```
+
+例:
+
+```
+feat(web): シートの一覧画面を追加
+
+- 誰でも見られるように、ログインなしで一覧と検索ができる（ADR 0005）
+- 検索条件は URL のクエリに持たせ、共有できるようにする
+
+Refs: specs/003-character-sheet-base
+```
+
+**type**（必須）
+
+| type | 使うとき |
+|---|---|
+| `feat` | 機能の追加・変更 |
+| `fix` | 不具合の修正 |
+| `refactor` | 動作を変えない書き換え |
+| `perf` | 性能の改善 |
+| `test` | テストだけの追加・修正 |
+| `docs` | ドキュメント（ADR、README、constitution、Spec の設計書） |
+| `build` | 依存パッケージ、Dockerfile、`mise.toml` |
+| `ci` | GitHub Actions |
+| `chore` | 上のどれにも当たらない雑務 |
+| `revert` | コミットの取り消し |
+
+**scope**（任意）: 変更が 1 か所に収まるときだけ付ける。複数にまたがるときは省く。
+
+| scope | 対象 |
+|---|---|
+| `api` | `apps/api` |
+| `web` | `apps/web` |
+| `schema` | GraphQL スキーマ |
+| `db` | マイグレーションと SQL |
+| `infra` | `infra/` |
+| `deps` | 依存パッケージ |
+
+**要約**: 句点を付けない。40 文字程度まで。「〜を追加」「〜を修正」のように、何をしたかがわかる形にする。
+
+**本文**（任意）: 小さな変更なら省く。書くときは「なぜ」を中心にする。箇条書きでもよい。
+
+**フッター**
+
+- Spec の実装中は `Refs: specs/<番号>-<機能名>` を書く。
+- 互換性を壊す変更は、type の後ろに `!` を付け（例: `feat(schema)!:`）、
+  フッターに `BREAKING CHANGE: <内容>` を書く。
+- Claude が書いたコミットには `Co-Authored-By: Claude …` を付ける。
+
+**分け方**
+
+- 1 つのコミットには、1 つの論理的な変更だけを入れる。
+- 生成コードは、元になった変更（スキーマ・SQL・設定）と同じコミットに入れる。
+  どのコミットを取り出しても `task check:generated` が通るようにするため。
+- PR を squash でマージする場合は、PR のタイトルも同じ形式にする。

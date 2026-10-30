@@ -91,6 +91,9 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 生成コード（`apps/api/internal/graph/generated.go`、`apps/api/internal/db/`、`apps/web/src/gql/`）は
 手で編集せず、`task generate` で再生成してコミットする。CI で差分がないことを確認している。
 
+コミットメッセージは Conventional Commits の形式で、日本語で書く。
+type・scope・フッターなどのルールは [CLAUDE.md の「コミットメッセージ」](CLAUDE.md#コミットメッセージ) を参照。
+
 ## 未決定事項
 
 次は該当する機能の Spec で `/speckit-clarify` を使って決める。それまでは推測で実装しない。
