@@ -1,0 +1,79 @@
+# API を Artifact Registry に push し、Cloud Run にデプロイする雛形。
+# インフラの準備（infra/gcp.md）ができるまでは手動実行（workflow_dispatch）のみ。
+# 認証は Workload Identity 連携で行い、サービスアカウントの鍵は使わない。
+name: deploy-api
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  SERVICE: chara-q-api
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/chara-q/api:${{ github.sha }}
+
+jobs:
+  deploy:
+    # Workload Identity 連携の条件と合わせ、main ブランチからだけ実行する
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Google Cloud に認証（Workload Identity 連携）
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Artifact Registry にログイン
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: イメージをビルドして push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: apps/api
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Cloud Run にデプロイ
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          service: ${{ env.SERVICE }}
+          image: ${{ env.IMAGE }}
+          # 常時起動のリソースは置かない（最小インスタンス数 0）
+          flags: >-
+            --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+            --min-instances=0
+            --max-instances=2
+            --allow-unauthenticated
+          env_vars: |-
+            APP_ENV=production
+            CORS_ALLOWED_ORIGINS=${{ vars.CLOUD_RUN_CORS_ALLOWED_ORIGINS }}
+          secrets: |-
+            DATABASE_URL=database-url:latest
+
+      - name: デプロイ先の URL
+        run: echo "${{ steps.deploy.outputs.url }}"

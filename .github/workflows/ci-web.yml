@@ -1,0 +1,77 @@
+name: ci-web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/web/**
+      - schema/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - mise.toml
+      - .github/workflows/ci-web.yml
+  pull_request:
+    paths:
+      - apps/web/**
+      - schema/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - mise.toml
+      - .github/workflows/ci-web.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        with:
+          version: 2026.10.22
+
+      - name: pnpm store のパスを取得
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: 生成コードに差分がないことを確認（GraphQL Code Generator）
+        run: |
+          pnpm --filter @chara-q/web codegen
+          changes=$(git status --porcelain -- apps/web/src/gql)
+          if [ -n "$changes" ]; then
+            echo "生成コードがコミット済みの内容と一致しません。task generate を実行してコミットしてください:"
+            echo "$changes"
+            git diff
+            exit 1
+          fi
+
+      - name: lint
+        run: pnpm --filter @chara-q/web lint
+
+      - name: 型チェック
+        run: pnpm --filter @chara-q/web typecheck
+
+      - name: build
+        run: pnpm --filter @chara-q/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080/graphql
