@@ -18,7 +18,8 @@
 4. GCP の残り（Artifact Registry、Workload Identity 連携、Secret Manager、Cloud Run）
 5. GitHub Actions の変数を設定し、`deploy-api.yml` を手動で実行する
 6. Vercel（API の URL が決まってから）
-7. API の `CORS_ALLOWED_ORIGINS` に Vercel のドメインを追加する
+7. R2 の CORS に Vercel のドメインを追加する（api は Vercel 経由で呼ぶため、api の CORS は
+   不要になる見込み。[ADR 0006](../docs/adr/0006-authentication.md)）
 
 ## 共通の決まり
 

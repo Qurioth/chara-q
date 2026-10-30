@@ -31,8 +31,12 @@ git diff --quiet HEAD^ HEAD -- . ../../schema ../../package.json ../../pnpm-work
 | `NEXT_PUBLIC_API_URL` | Preview | 本番 API か、プレビュー用の API の URL（Spec で決める） |
 
 - `NEXT_PUBLIC_` で始まる値はブラウザに公開される。シークレットは入れない。
+- [ADR 0006](../docs/adr/0006-authentication.md) で、api へは Next.js の `rewrites` で中継することにした。
+  認証の Spec で、`NEXT_PUBLIC_API_URL` を中継先を表すサーバー側の環境変数に置き換える
+  （変数名はその Spec で決める）。
 
 ## 4. ドメイン
 
-- Vercel のドメイン（またはカスタムドメイン）が決まったら、API の `CORS_ALLOWED_ORIGINS` と
-  R2 の CORS に追加する。
+- 独自ドメインは使わず、Vercel のドメイン（`*.vercel.app`）をそのまま使う（ADR 0006）。
+- Vercel のドメインが決まったら、R2 の CORS に追加する（ブラウザから R2 へ直接アップロードするため）。
+- api は Vercel 経由で呼ぶため、api の CORS は不要になる見込み（認証の Spec で決める）。

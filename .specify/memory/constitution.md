@@ -70,9 +70,12 @@
 
 ## 技術・運用上の制約
 
-- **決定済みの技術スタック**: Next.js（App Router、Vercel）、Go + gqlgen + chi（Cloud Run）、
-  Neon（Postgres）、Cloudflare R2、GitHub Actions。これらの変更や新しい基盤技術の追加には
-  ADR（`docs/adr/`）を必須とする（MUST）。
+- **決定済みの技術スタック**: Next.js（App Router、Vercel）、Tailwind CSS + shadcn/ui、
+  Go + gqlgen + chi（Cloud Run）、Neon（Postgres）、Cloudflare R2、GitHub Actions。
+  これらの変更や新しい基盤技術の追加には ADR（`docs/adr/`）を必須とする（MUST）。
+- **UI**: スタイルとシートのレイアウトは Tailwind CSS で書き、shadcn/ui は操作の伴う部品
+  （セレクト、ダイアログなど）にだけ使う（SHOULD）。MUI は使わない（MUST）。shadcn/ui から
+  コピーした部品は生成コードではなく、自分のコードとして変更してよい。
 - **リージョン**: Cloud Run と Neon は同じシンガポール（Cloud Run は `asia-southeast1`）に置く
   （MUST）。
 - **シークレット**: シークレットや実際の接続文字列をリポジトリに置かない（MUST）。ローカルは
@@ -80,6 +83,15 @@
   には例の値だけを書く。
 - **コスト**: GCP には必ず予算アラートを設定する（MUST）。常時起動のリソースは置かず、
   Cloud Run の最小インスタンス数は 0 にする（MUST）。
+- **認証**: ユーザー登録はログイン ID・パスワード・管理者が発行した招待コードで行い、
+  メールアドレスなどの個人情報は保持しない（MUST）。ブラウザは web とだけ通信し、api へは
+  Next.js の `rewrites` で中継する（MUST）。ログイン状態は DB で管理するセッションで持ち、
+  Cookie は `HttpOnly`・`Secure`・`SameSite=Lax` にする（MUST）。JWT は使わない。パスワード・
+  招待コード・セッション ID は、平文で保存しない（MUST）。詳細は ADR 0006。
+- **シートの公開範囲**: 一覧・検索・閲覧は誰でも（ログイン不要）できる。複製と作成は
+  ログインしたユーザーが行い、更新はシートの所有者だけができる（MUST）。resolver で所有者を
+  確かめずに更新してはならない。MongoDB から移行する既存シートは、システム管理者ユーザーの
+  所有にする（詳細は ADR 0005）。
 - **画像**: 画像はブラウザから R2 へ署名付き URL で直接アップロードし、DB には R2 のキーだけを
   保存する（MUST）。
 - **ツールとタスク**: 開発ツールのバージョンは `mise.toml` で固定し、手元と CI で同じものを
@@ -92,10 +104,7 @@
 次の事項は意図的に未決定とする。関連する機能の Spec で `/speckit-clarify` を使って決め、
 決まったら本ファイルと ADR を更新する。それまでは推測で実装しない（MUST）。
 
-- **認証の詳細**: ログイン方法、トークンの保存場所（Go が JWT を発行し、Next.js はそれを渡す
-  だけ、という大枠のみ決定済み）
 - **WebP 変換の実行場所**: ブラウザ / Go / Cloudflare Worker のいずれか
-- **UI ライブラリ**: 旧システムの MUI と Tailwind を引き継ぐかどうか
 
 ## Governance
 
@@ -107,4 +116,4 @@
 - `/speckit-plan` の Constitution Check で各原則への適合を確認する。違反が必要な場合は、
   plan の Complexity Tracking に理由と、より単純な代替案を採らなかった理由を書く。
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-29 | **Last Amended**: 2026-10-29
+**Version**: 1.3.0 | **Ratified**: 2026-10-29 | **Last Amended**: 2026-10-30
