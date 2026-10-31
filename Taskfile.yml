@@ -53,6 +53,11 @@ tasks:
     cmds:
       - pnpm --filter {{.WEB_PKG}} dev
 
+  dev:web:https:
+    desc: web を https://localhost:3000 で起動する（Safari で Secure の Cookie を確かめるとき。自己署名の証明書を端末に登録する）
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} dev --experimental-https
+
   generate:
     desc: すべての生成コードを更新する（gqlgen、sqlc、GraphQL Code Generator）
     cmds:

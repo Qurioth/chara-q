@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
+import { AccountArea, AccountAreaFallback } from "@/components/auth/account-area";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
@@ -27,12 +29,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-dvh flex-col">
-        <SkipLink />
-        <SiteHeader actions={<ThemeToggle />} />
-        <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
-          <UrqlProvider>{children}</UrqlProvider>
-        </main>
-        <SiteFooter />
+        {/* ヘッダーのログアウトも urql で送るため、ヘッダーと本文をまとめて包む */}
+        <UrqlProvider>
+          <SkipLink />
+          <SiteHeader
+            actions={
+              <>
+                <ThemeToggle />
+                {/* ログイン状態は cookies() を読むため、外枠とは別にストリーミングする（cacheComponents） */}
+                <Suspense fallback={<AccountAreaFallback />}>
+                  <AccountArea />
+                </Suspense>
+              </>
+            }
+          />
+          <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
+            {children}
+          </main>
+          <SiteFooter />
+        </UrqlProvider>
       </body>
     </html>
   );
