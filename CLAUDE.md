@@ -16,7 +16,8 @@ task db:migrate       # マイグレーションを適用
 task generate         # gqlgen・sqlc・GraphQL Code Generator で生成コードを更新
 task dev              # api（:8080）と web（:3000）を起動
 task lint             # 静的チェック（Go と web）
-task test             # テスト（DB を使うテストには db:up が必要）
+task test             # api と web のテスト（api の DB を使うテストには db:up が必要）
+task test:web         # web のテストだけ（API と DB は不要）
 task check:generated  # 生成コードがコミット済みの内容と一致するか確認
 task db:new -- <名前> # マイグレーションファイルを作る
 ```

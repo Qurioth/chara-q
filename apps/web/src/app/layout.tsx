@@ -1,30 +1,38 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
+import { SkipLink } from "@/components/layout/skip-link";
+import { themeScript } from "@/components/theme/theme-script";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { fontVariables } from "@/lib/fonts";
 import { UrqlProvider } from "@/lib/urql-provider";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "chara-q",
-  description: "TRPG キャラクターシート管理",
+  title: {
+    template: "%s | CharaQ",
+    default: "CharaQ",
+  },
+  description:
+    "TRPGのキャラクターをつくろう。キャラクターシートを作成するシステムを選択してください。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ja" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
-        <UrqlProvider>{children}</UrqlProvider>
+    // テーマのスクリプトが描画の前に class と style を変えるため、ハイドレーションの差分を許す
+    <html lang="ja" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="flex min-h-dvh flex-col">
+        <SkipLink />
+        <SiteHeader actions={<ThemeToggle />} />
+        <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
+          <UrqlProvider>{children}</UrqlProvider>
+        </main>
+        <SiteFooter />
       </body>
     </html>
   );

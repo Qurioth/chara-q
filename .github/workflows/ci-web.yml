@@ -71,6 +71,9 @@ jobs:
       - name: 型チェック
         run: pnpm --filter @chara-q/web typecheck
 
+      - name: テスト
+        run: pnpm --filter @chara-q/web test
+
       - name: build
         run: pnpm --filter @chara-q/web build
         env:
