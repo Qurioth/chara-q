@@ -33,18 +33,23 @@ func New(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	r.Handle("/graphql", newGraphQLHandler(cfg, resolver))
+	// セッションの Cookie から本人を読む（ADR 0006）
+	r.With(resolver.Auth.Middleware).Handle("/graphql", newGraphQLHandler(cfg, resolver, logger))
 	if cfg.Development {
 		r.Handle("/playground", playground.Handler("chara-q GraphQL", "/graphql"))
 	}
 	return r
 }
 
-func newGraphQLHandler(cfg config.Config, resolver *graph.Resolver) http.Handler {
+func newGraphQLHandler(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.Handler {
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	// CSRF の対策: ミューテーションは POST かつ application/json だけで受け付ける（FR-005、research R4）。
+	// gqlgen の POST は application/json だけを、GET はクエリだけを受け付ける。
+	// フォームや multipart の transport は追加しない（server_test.go で確かめる）
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
+	srv.SetErrorPresenter(graph.ErrorPresenter(logger))
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	if cfg.Development {
 		srv.Use(extension.Introspection{})

@@ -69,6 +69,7 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 | `task lint`                   | gofmt / goimports、go vet、golangci-lint、ESLint、型チェック   |
 | `task fmt`                    | Go のコードを整形                                              |
 | `task test`                   | api と web のテスト（api の DB を使うテストには `task db:up`） |
+| `task db:test:prepare`        | テスト用の DB（`chara_q_test`）を作り、マイグレーションを適用（`test:api` が実行する） |
 | `task test:web`               | web のテストだけ（API と DB は不要）                           |
 | `task build`                  | api と web をビルド                                            |
 | `task docker:build`           | api の Docker イメージをビルド                                 |

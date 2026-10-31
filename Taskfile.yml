@@ -116,11 +116,13 @@ tasks:
       - task: test:web
 
   test:api:
-    desc: api のテスト
+    desc: api のテスト（テスト用の DB を用意してから実行する）
     dir: "{{.API_DIR}}"
     dotenv: [.env]
     cmds:
-      - go test ./...
+      - task: db:test:prepare
+      # DB を使うテストは表を空にするため、パッケージを並列に実行しない
+      - go test -p 1 ./...
 
   test:web:
     desc: web のテスト（API と DB は不要）
@@ -179,6 +181,17 @@ tasks:
     cmds:
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" reset'
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" up'
+
+  db:test:prepare:
+    desc: テスト用の DB（chara_q_test）がなければ作り、マイグレーションを最新まで適用する
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      # テストは表を空にするため、開発用の DB とは別のデータベースを使う
+      - >-
+        echo "SELECT 'CREATE DATABASE chara_q_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'chara_q_test') \gexec"
+        | docker compose exec -T postgres psql -U chara_q -d chara_q -v ON_ERROR_STOP=1 -q
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$TEST_DATABASE_URL" up'
 
   db:new:
     desc: "マイグレーションファイルを作る（例: task db:new -- create_character_sheets）"
