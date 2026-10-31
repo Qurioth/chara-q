@@ -78,6 +78,13 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 | `task db:status`              | マイグレーションの適用状況を表示                               |
 | `task db:reset`               | マイグレーションをすべて戻してから適用し直す（データは消える） |
 | `task db:new -- <名前>`       | マイグレーションファイルを作る                                 |
+| `task admin:create -- -login-id <ID> -display-name <表示名>` | 管理者ユーザーを作る（パスワードは入力を求める） |
+| `task admin:users`            | ユーザーの一覧                                                 |
+| `task admin:reset-code -- <ログイン ID>` | パスワードの再設定コードを発行                      |
+| `task admin:disable -- <ログイン ID>` / `task admin:enable -- <ログイン ID>` | ユーザーを無効にする / 有効に戻す |
+
+`admin:*` の接続先は `apps/api/.env` の `DATABASE_URL`。本番の DB に対して実行するときは、シェルで
+`DATABASE_URL` を設定してから実行する（`.env` の値より優先される）。
 
 `task --list` ですべてのタスクを確認できる。
 

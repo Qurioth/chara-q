@@ -182,6 +182,52 @@ tasks:
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" reset'
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "$DATABASE_URL" up'
 
+  # 管理者の操作（specs/002-auth/contracts/admin-commands.md）。接続先は apps/api/.env の DATABASE_URL。
+  # 本番の DB に対して実行するときは、シェルで DATABASE_URL を設定してから実行する（dotenv はシェルの値を上書きしない）
+  admin:create:
+    desc: "管理者ユーザーを作る。パスワードは入力を求める（例: task admin:create -- -login-id admin -display-name 管理者）"
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    interactive: true
+    requires:
+      vars: [CLI_ARGS]
+    cmds:
+      - go run ./cmd/admin create-admin{{range .CLI_ARGS_LIST}} {{shellQuote .}}{{end}}
+
+  admin:users:
+    desc: ユーザーの一覧を表示する
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    cmds:
+      - go run ./cmd/admin users
+
+  admin:reset-code:
+    desc: "パスワードの再設定コードを発行する（例: task admin:reset-code -- <ログイン ID>）"
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    requires:
+      vars: [CLI_ARGS]
+    cmds:
+      - go run ./cmd/admin reset-code{{range .CLI_ARGS_LIST}} {{shellQuote .}}{{end}}
+
+  admin:disable:
+    desc: "ユーザーを無効にし、ログイン状態を切る（例: task admin:disable -- <ログイン ID>）"
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    requires:
+      vars: [CLI_ARGS]
+    cmds:
+      - go run ./cmd/admin disable{{range .CLI_ARGS_LIST}} {{shellQuote .}}{{end}}
+
+  admin:enable:
+    desc: "無効にしたユーザーを有効に戻す（例: task admin:enable -- <ログイン ID>）"
+    dir: "{{.API_DIR}}"
+    dotenv: [.env]
+    requires:
+      vars: [CLI_ARGS]
+    cmds:
+      - go run ./cmd/admin enable{{range .CLI_ARGS_LIST}} {{shellQuote .}}{{end}}
+
   db:test:prepare:
     desc: テスト用の DB（chara_q_test）がなければ作り、マイグレーションを最新まで適用する
     dir: "{{.API_DIR}}"
