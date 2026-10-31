@@ -9,9 +9,11 @@ import (
 	"math"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/Qurioth/chara-q/apps/api/internal/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -26,6 +28,7 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -33,8 +36,63 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ChangePasswordPayload struct {
+		Errors func(childComplexity int) int
+		Viewer func(childComplexity int) int
+	}
+
+	InputError struct {
+		Code  func(childComplexity int) int
+		Field func(childComplexity int) int
+	}
+
+	IssueInvitationPayload struct {
+		Code      func(childComplexity int) int
+		ExpiresAt func(childComplexity int) int
+	}
+
+	LoginPayload struct {
+		Errors      func(childComplexity int) int
+		LockedUntil func(childComplexity int) int
+		Viewer      func(childComplexity int) int
+	}
+
+	Mutation struct {
+		ChangePassword    func(childComplexity int, input model.ChangePasswordInput) int
+		IssueInvitation   func(childComplexity int) int
+		Login             func(childComplexity int, input model.LoginInput) int
+		Logout            func(childComplexity int) int
+		Register          func(childComplexity int, input model.RegisterInput) int
+		ResetPassword     func(childComplexity int, input model.ResetPasswordInput) int
+		UpdateDisplayName func(childComplexity int, input model.UpdateDisplayNameInput) int
+	}
+
 	Query struct {
 		Health func(childComplexity int) int
+		Viewer func(childComplexity int) int
+	}
+
+	RegisterPayload struct {
+		Errors func(childComplexity int) int
+		Viewer func(childComplexity int) int
+	}
+
+	ResetPasswordPayload struct {
+		Errors      func(childComplexity int) int
+		LockedUntil func(childComplexity int) int
+		Ok          func(childComplexity int) int
+	}
+
+	UpdateDisplayNamePayload struct {
+		Errors func(childComplexity int) int
+		Viewer func(childComplexity int) int
+	}
+
+	Viewer struct {
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsAdmin     func(childComplexity int) int
+		LoginID     func(childComplexity int) int
 	}
 }
 
@@ -42,8 +100,18 @@ type ComplexityRoot struct {
 
 // region    ************************** generated!.gotpl **************************
 
+type MutationResolver interface {
+	Register(ctx context.Context, input model.RegisterInput) (*model.RegisterPayload, error)
+	Login(ctx context.Context, input model.LoginInput) (*model.LoginPayload, error)
+	Logout(ctx context.Context) (bool, error)
+	UpdateDisplayName(ctx context.Context, input model.UpdateDisplayNameInput) (*model.UpdateDisplayNamePayload, error)
+	ChangePassword(ctx context.Context, input model.ChangePasswordInput) (*model.ChangePasswordPayload, error)
+	ResetPassword(ctx context.Context, input model.ResetPasswordInput) (*model.ResetPasswordPayload, error)
+	IssueInvitation(ctx context.Context) (*model.IssueInvitationPayload, error)
+}
 type QueryResolver interface {
 	Health(ctx context.Context) (string, error)
+	Viewer(ctx context.Context) (*model.Viewer, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -64,12 +132,215 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "ChangePasswordPayload.errors":
+		if e.ComplexityRoot.ChangePasswordPayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ChangePasswordPayload.Errors(childComplexity), true
+	case "ChangePasswordPayload.viewer":
+		if e.ComplexityRoot.ChangePasswordPayload.Viewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ChangePasswordPayload.Viewer(childComplexity), true
+
+	case "InputError.code":
+		if e.ComplexityRoot.InputError.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InputError.Code(childComplexity), true
+	case "InputError.field":
+		if e.ComplexityRoot.InputError.Field == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InputError.Field(childComplexity), true
+
+	case "IssueInvitationPayload.code":
+		if e.ComplexityRoot.IssueInvitationPayload.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.IssueInvitationPayload.Code(childComplexity), true
+	case "IssueInvitationPayload.expiresAt":
+		if e.ComplexityRoot.IssueInvitationPayload.ExpiresAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.IssueInvitationPayload.ExpiresAt(childComplexity), true
+
+	case "LoginPayload.errors":
+		if e.ComplexityRoot.LoginPayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LoginPayload.Errors(childComplexity), true
+	case "LoginPayload.lockedUntil":
+		if e.ComplexityRoot.LoginPayload.LockedUntil == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LoginPayload.LockedUntil(childComplexity), true
+	case "LoginPayload.viewer":
+		if e.ComplexityRoot.LoginPayload.Viewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LoginPayload.Viewer(childComplexity), true
+
+	case "Mutation.changePassword":
+		if e.ComplexityRoot.Mutation.ChangePassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_changePassword_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ChangePassword(childComplexity, args["input"].(model.ChangePasswordInput)), true
+	case "Mutation.issueInvitation":
+		if e.ComplexityRoot.Mutation.IssueInvitation == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.IssueInvitation(childComplexity), true
+	case "Mutation.login":
+		if e.ComplexityRoot.Mutation.Login == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_login_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.Login(childComplexity, args["input"].(model.LoginInput)), true
+	case "Mutation.logout":
+		if e.ComplexityRoot.Mutation.Logout == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.Logout(childComplexity), true
+	case "Mutation.register":
+		if e.ComplexityRoot.Mutation.Register == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_register_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.Register(childComplexity, args["input"].(model.RegisterInput)), true
+	case "Mutation.resetPassword":
+		if e.ComplexityRoot.Mutation.ResetPassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resetPassword_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ResetPassword(childComplexity, args["input"].(model.ResetPasswordInput)), true
+	case "Mutation.updateDisplayName":
+		if e.ComplexityRoot.Mutation.UpdateDisplayName == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateDisplayName_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateDisplayName(childComplexity, args["input"].(model.UpdateDisplayNameInput)), true
+
 	case "Query.health":
 		if e.ComplexityRoot.Query.Health == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Query.Health(childComplexity), true
+
+	case "Query.viewer":
+		if e.ComplexityRoot.Query.Viewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.Viewer(childComplexity), true
+
+	case "RegisterPayload.errors":
+		if e.ComplexityRoot.RegisterPayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RegisterPayload.Errors(childComplexity), true
+	case "RegisterPayload.viewer":
+		if e.ComplexityRoot.RegisterPayload.Viewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RegisterPayload.Viewer(childComplexity), true
+
+	case "ResetPasswordPayload.errors":
+		if e.ComplexityRoot.ResetPasswordPayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ResetPasswordPayload.Errors(childComplexity), true
+	case "ResetPasswordPayload.lockedUntil":
+		if e.ComplexityRoot.ResetPasswordPayload.LockedUntil == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ResetPasswordPayload.LockedUntil(childComplexity), true
+	case "ResetPasswordPayload.ok":
+		if e.ComplexityRoot.ResetPasswordPayload.Ok == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ResetPasswordPayload.Ok(childComplexity), true
+
+	case "UpdateDisplayNamePayload.errors":
+		if e.ComplexityRoot.UpdateDisplayNamePayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.UpdateDisplayNamePayload.Errors(childComplexity), true
+	case "UpdateDisplayNamePayload.viewer":
+		if e.ComplexityRoot.UpdateDisplayNamePayload.Viewer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.UpdateDisplayNamePayload.Viewer(childComplexity), true
+
+	case "Viewer.displayName":
+		if e.ComplexityRoot.Viewer.DisplayName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Viewer.DisplayName(childComplexity), true
+	case "Viewer.id":
+		if e.ComplexityRoot.Viewer.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Viewer.ID(childComplexity), true
+	case "Viewer.isAdmin":
+		if e.ComplexityRoot.Viewer.IsAdmin == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Viewer.IsAdmin(childComplexity), true
+	case "Viewer.loginId":
+		if e.ComplexityRoot.Viewer.LoginID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Viewer.LoginID(childComplexity), true
 
 	}
 	return 0, false
@@ -79,7 +350,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalers := func() *graphql.InputUnmarshalerIndex {
-		return graphql.NewInputUnmarshalerIndex()
+		return graphql.NewInputUnmarshalerIndex(
+			graphql.NewInputUnmarshaler("ChangePasswordInput", ec.unmarshalInputChangePasswordInput),
+			graphql.NewInputUnmarshaler("LoginInput", ec.unmarshalInputLoginInput),
+			graphql.NewInputUnmarshaler("RegisterInput", ec.unmarshalInputRegisterInput),
+			graphql.NewInputUnmarshaler("ResetPasswordInput", ec.unmarshalInputResetPasswordInput),
+			graphql.NewInputUnmarshaler("UpdateDisplayNameInput", ec.unmarshalInputUpdateDisplayNameInput),
+		)
 	}
 	first := true
 
@@ -114,6 +391,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 
 			return &response
 		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithLazyInputUnmarshalerIndex(ctx, inputUnmarshalers)
+			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -140,6 +432,147 @@ func newExecutionContext(
 }
 
 var sources = []*ast.Source{
+	{Name: "../../../../schema/graphql/auth.graphqls", Input: `# 認証（specs/002-auth）。ログイン状態はセッションの Cookie で持つ（ADR 0006）。
+# ログイン ID は本人（Viewer）にだけ返す。他のユーザーの情報には loginId を持たせない（FR-034）。
+
+extend type Query {
+  "ログインしている本人。ログインしていなければ null"
+  viewer: Viewer
+}
+
+"ログインしている本人"
+type Viewer {
+  id: ID!
+  "本人にだけ見せる"
+  loginId: String!
+  "公開される"
+  displayName: String!
+  isAdmin: Boolean!
+}
+
+type Mutation {
+  "招待コードで登録し、そのままログインする"
+  register(input: RegisterInput!): RegisterPayload!
+  "ログインする。成功したらセッションの Cookie を設定する"
+  login(input: LoginInput!): LoginPayload!
+  "ログアウトする。ログインしていなくても成功する"
+  logout: Boolean!
+  "自分の表示名を変える（ログインが必要）"
+  updateDisplayName(input: UpdateDisplayNameInput!): UpdateDisplayNamePayload!
+  "自分のパスワードを変える（ログインが必要）。ほかのセッションはすべて切れる"
+  changePassword(input: ChangePasswordInput!): ChangePasswordPayload!
+  "再設定コードでパスワードを設定し直す。ログインはしない"
+  resetPassword(input: ResetPasswordInput!): ResetPasswordPayload!
+  "招待コードを発行する（管理者だけ）"
+  issueInvitation: IssueInvitationPayload!
+}
+
+input RegisterInput {
+  invitationCode: String!
+  loginId: String!
+  password: String!
+  displayName: String!
+}
+
+type RegisterPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input LoginInput {
+  loginId: String!
+  password: String!
+}
+
+type LoginPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+  "errors に LOCKED があるときだけ値がある"
+  lockedUntil: Time
+}
+
+input UpdateDisplayNameInput {
+  displayName: String!
+}
+
+type UpdateDisplayNamePayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+}
+
+type ChangePasswordPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input ResetPasswordInput {
+  loginId: String!
+  resetCode: String!
+  newPassword: String!
+}
+
+type ResetPasswordPayload {
+  ok: Boolean!
+  errors: [InputError!]!
+  "errors に LOCKED があるときだけ値がある"
+  lockedUntil: Time
+}
+
+type IssueInvitationPayload {
+  "発行したときにだけ返す。4 文字ごとにハイフンで区切った形"
+  code: String!
+  expiresAt: Time!
+}
+
+"利用者が入力を直せば解決する失敗"
+type InputError {
+  "どの項目の失敗か。フォーム全体の失敗なら null"
+  field: InputField
+  code: InputErrorCode!
+}
+
+enum InputField {
+  INVITATION_CODE
+  LOGIN_ID
+  PASSWORD
+  CURRENT_PASSWORD
+  NEW_PASSWORD
+  DISPLAY_NAME
+  RESET_CODE
+}
+
+enum InputErrorCode {
+  "未入力"
+  REQUIRED
+  "短すぎる"
+  TOO_SHORT
+  "長すぎる"
+  TOO_LONG
+  "使えない文字を含む"
+  INVALID_CHARACTERS
+  "招待コードが存在しない・使用済み・期限切れ（区別しない）"
+  INVITATION_UNAVAILABLE
+  "ログイン ID が使われている"
+  LOGIN_ID_TAKEN
+  "ログイン ID・パスワードが違う、またはユーザーが無効（区別しない）"
+  INVALID_CREDENTIALS
+  "続けて失敗したため一時的にロックしている"
+  LOCKED
+  "現在のパスワードが違う"
+  WRONG_CURRENT_PASSWORD
+  "再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない）"
+  RESET_CODE_UNAVAILABLE
+}
+`, BuiltIn: false},
 	{Name: "../../../../schema/graphql/schema.graphqls", Input: `# chara-q の GraphQL スキーマ（API の唯一の正）
 # gqlgen（apps/api）と GraphQL Code Generator（apps/web）の両方がこのディレクトリを読む。
 # CharacterSheet などの実際の型は、最初の Spec で追加する。
@@ -161,6 +594,94 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // childFields_* functions provide shared child field context lookups.
 // Each function is generated once per unique object type, deduplicating the
 // switch statements that were previously inlined in every fieldContext_* function.
+
+func (ec *executionContext) childFields_ChangePasswordPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "viewer":
+		return ec.fieldContext_ChangePasswordPayload_viewer(ctx, field)
+	case "errors":
+		return ec.fieldContext_ChangePasswordPayload_errors(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ChangePasswordPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_InputError(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "field":
+		return ec.fieldContext_InputError_field(ctx, field)
+	case "code":
+		return ec.fieldContext_InputError_code(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type InputError", field.Name)
+}
+
+func (ec *executionContext) childFields_IssueInvitationPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "code":
+		return ec.fieldContext_IssueInvitationPayload_code(ctx, field)
+	case "expiresAt":
+		return ec.fieldContext_IssueInvitationPayload_expiresAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IssueInvitationPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_LoginPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "viewer":
+		return ec.fieldContext_LoginPayload_viewer(ctx, field)
+	case "errors":
+		return ec.fieldContext_LoginPayload_errors(ctx, field)
+	case "lockedUntil":
+		return ec.fieldContext_LoginPayload_lockedUntil(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LoginPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_RegisterPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "viewer":
+		return ec.fieldContext_RegisterPayload_viewer(ctx, field)
+	case "errors":
+		return ec.fieldContext_RegisterPayload_errors(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RegisterPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_ResetPasswordPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "ok":
+		return ec.fieldContext_ResetPasswordPayload_ok(ctx, field)
+	case "errors":
+		return ec.fieldContext_ResetPasswordPayload_errors(ctx, field)
+	case "lockedUntil":
+		return ec.fieldContext_ResetPasswordPayload_lockedUntil(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ResetPasswordPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_UpdateDisplayNamePayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "viewer":
+		return ec.fieldContext_UpdateDisplayNamePayload_viewer(ctx, field)
+	case "errors":
+		return ec.fieldContext_UpdateDisplayNamePayload_errors(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type UpdateDisplayNamePayload", field.Name)
+}
+
+func (ec *executionContext) childFields_Viewer(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Viewer_id(ctx, field)
+	case "loginId":
+		return ec.fieldContext_Viewer_loginId(ctx, field)
+	case "displayName":
+		return ec.fieldContext_Viewer_displayName(ctx, field)
+	case "isAdmin":
+		return ec.fieldContext_Viewer_isAdmin(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Viewer", field.Name)
+}
 
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
@@ -278,6 +799,76 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_changePassword_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.ChangePasswordInput, error) {
+			return ec.unmarshalNChangePasswordInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐChangePasswordInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.LoginInput, error) {
+			return ec.unmarshalNLoginInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_register_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.RegisterInput, error) {
+			return ec.unmarshalNRegisterInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRegisterInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_resetPassword_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.ResetPasswordInput, error) {
+			return ec.unmarshalNResetPasswordInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateDisplayName_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.UpdateDisplayNameInput, error) {
+			return ec.unmarshalNUpdateDisplayNameInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateDisplayNameInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -366,6 +957,524 @@ func (ec *executionContext) field___Type_inputFields_args(ctx context.Context, r
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _ChangePasswordPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ChangePasswordPayload_viewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Viewer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+			return ec.marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_ChangePasswordPayload_viewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Viewer(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChangePasswordPayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ChangePasswordPayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ChangePasswordPayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChangePasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InputError_field(ctx context.Context, field graphql.CollectedField, obj *model.InputError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InputError_field(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Field, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.InputField) graphql.Marshaler {
+			return ec.marshalOInputField2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputField(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_InputError_field(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("InputError", field, false, false, "InputField")
+}
+
+func (ec *executionContext) _InputError_code(ctx context.Context, field graphql.CollectedField, obj *model.InputError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InputError_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.InputErrorCode) graphql.Marshaler {
+			return ec.marshalNInputErrorCode2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorCode(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_InputError_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("InputError", field, false, false, "InputErrorCode")
+}
+
+func (ec *executionContext) _IssueInvitationPayload_code(ctx context.Context, field graphql.CollectedField, obj *model.IssueInvitationPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IssueInvitationPayload_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_IssueInvitationPayload_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("IssueInvitationPayload", field, false, false, "String")
+}
+
+func (ec *executionContext) _IssueInvitationPayload_expiresAt(ctx context.Context, field graphql.CollectedField, obj *model.IssueInvitationPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IssueInvitationPayload_expiresAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_IssueInvitationPayload_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("IssueInvitationPayload", field, false, false, "Time")
+}
+
+func (ec *executionContext) _LoginPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.LoginPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LoginPayload_viewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Viewer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+			return ec.marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_LoginPayload_viewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LoginPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Viewer(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LoginPayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.LoginPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LoginPayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LoginPayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LoginPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LoginPayload_lockedUntil(ctx context.Context, field graphql.CollectedField, obj *model.LoginPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LoginPayload_lockedUntil(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LockedUntil, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_LoginPayload_lockedUntil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LoginPayload", field, false, false, "Time")
+}
+
+func (ec *executionContext) _Mutation_register(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_register(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().Register(ctx, fc.Args["input"].(model.RegisterInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RegisterPayload) graphql.Marshaler {
+			return ec.marshalNRegisterPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRegisterPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_register(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RegisterPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_register_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_login(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().Login(ctx, fc.Args["input"].(model.LoginInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.LoginPayload) graphql.Marshaler {
+			return ec.marshalNLoginPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLoginPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LoginPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_logout(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Mutation", field, true, true, "Boolean")
+}
+
+func (ec *executionContext) _Mutation_updateDisplayName(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateDisplayName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateDisplayName(ctx, fc.Args["input"].(model.UpdateDisplayNameInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.UpdateDisplayNamePayload) graphql.Marshaler {
+			return ec.marshalNUpdateDisplayNamePayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateDisplayNamePayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateDisplayName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_UpdateDisplayNamePayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateDisplayName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_changePassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_changePassword(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ChangePassword(ctx, fc.Args["input"].(model.ChangePasswordInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ChangePasswordPayload) graphql.Marshaler {
+			return ec.marshalNChangePasswordPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐChangePasswordPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_changePassword(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ChangePasswordPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_changePassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_resetPassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_resetPassword(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ResetPassword(ctx, fc.Args["input"].(model.ResetPasswordInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.ResetPasswordPayload) graphql.Marshaler {
+			return ec.marshalNResetPasswordPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐResetPasswordPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_resetPassword(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ResetPasswordPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_resetPassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_issueInvitation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_issueInvitation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().IssueInvitation(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.IssueInvitationPayload) graphql.Marshaler {
+			return ec.marshalNIssueInvitationPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐIssueInvitationPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_issueInvitation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_IssueInvitationPayload(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_health(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -387,6 +1496,38 @@ func (ec *executionContext) _Query_health(ctx context.Context, field graphql.Col
 }
 func (ec *executionContext) fieldContext_Query_health(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Query", field, true, true, "String")
+}
+
+func (ec *executionContext) _Query_viewer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_viewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().Viewer(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+			return ec.marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_viewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Viewer(ctx, field)
+		},
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -463,6 +1604,304 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _RegisterPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.RegisterPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RegisterPayload_viewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Viewer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+			return ec.marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RegisterPayload_viewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RegisterPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Viewer(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RegisterPayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.RegisterPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RegisterPayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RegisterPayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RegisterPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResetPasswordPayload_ok(ctx context.Context, field graphql.CollectedField, obj *model.ResetPasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ResetPasswordPayload_ok(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ok, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ResetPasswordPayload_ok(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ResetPasswordPayload", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _ResetPasswordPayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.ResetPasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ResetPasswordPayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ResetPasswordPayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResetPasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResetPasswordPayload_lockedUntil(ctx context.Context, field graphql.CollectedField, obj *model.ResetPasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ResetPasswordPayload_lockedUntil(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LockedUntil, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_ResetPasswordPayload_lockedUntil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ResetPasswordPayload", field, false, false, "Time")
+}
+
+func (ec *executionContext) _UpdateDisplayNamePayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.UpdateDisplayNamePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_UpdateDisplayNamePayload_viewer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Viewer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+			return ec.marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_UpdateDisplayNamePayload_viewer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateDisplayNamePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Viewer(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateDisplayNamePayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.UpdateDisplayNamePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_UpdateDisplayNamePayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_UpdateDisplayNamePayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateDisplayNamePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Viewer_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Viewer_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Viewer", field, false, false, "ID")
+}
+
+func (ec *executionContext) _Viewer_loginId(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Viewer_loginId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LoginID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Viewer_loginId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Viewer", field, false, false, "String")
+}
+
+func (ec *executionContext) _Viewer_displayName(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Viewer_displayName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Viewer_displayName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Viewer", field, false, false, "String")
+}
+
+func (ec *executionContext) _Viewer_isAdmin(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Viewer_isAdmin(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsAdmin, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Viewer_isAdmin(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Viewer", field, false, false, "Boolean")
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -1538,6 +2977,265 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputChangePasswordInput(ctx context.Context, obj any) (model.ChangePasswordInput, error) {
+	var it model.ChangePasswordInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"currentPassword", "newPassword"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "currentPassword":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentPassword"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CurrentPassword = data
+		case "newPassword":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPassword"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewPassword = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalChangePasswordInput unmarshals raw into the ChangePasswordInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalChangePasswordInput(ctx context.Context, raw any) (model.ChangePasswordInput, error) {
+	var out model.ChangePasswordInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "ChangePasswordInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj any) (model.LoginInput, error) {
+	var it model.LoginInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"loginId", "password"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "loginId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loginId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoginID = data
+		case "password":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalLoginInput unmarshals raw into the LoginInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalLoginInput(ctx context.Context, raw any) (model.LoginInput, error) {
+	var out model.LoginInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "LoginInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputRegisterInput(ctx context.Context, obj any) (model.RegisterInput, error) {
+	var it model.RegisterInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"invitationCode", "loginId", "password", "displayName"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "invitationCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("invitationCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InvitationCode = data
+		case "loginId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loginId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoginID = data
+		case "password":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		case "displayName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayName = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalRegisterInput unmarshals raw into the RegisterInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalRegisterInput(ctx context.Context, raw any) (model.RegisterInput, error) {
+	var out model.RegisterInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "RegisterInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputResetPasswordInput(ctx context.Context, obj any) (model.ResetPasswordInput, error) {
+	var it model.ResetPasswordInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"loginId", "resetCode", "newPassword"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "loginId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loginId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoginID = data
+		case "resetCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resetCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ResetCode = data
+		case "newPassword":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPassword"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewPassword = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalResetPasswordInput unmarshals raw into the ResetPasswordInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalResetPasswordInput(ctx context.Context, raw any) (model.ResetPasswordInput, error) {
+	var out model.ResetPasswordInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "ResetPasswordInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputUpdateDisplayNameInput(ctx context.Context, obj any) (model.UpdateDisplayNameInput, error) {
+	var it model.UpdateDisplayNameInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"displayName"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "displayName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayName = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalUpdateDisplayNameInput unmarshals raw into the UpdateDisplayNameInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalUpdateDisplayNameInput(ctx context.Context, raw any) (model.UpdateDisplayNameInput, error) {
+	var out model.UpdateDisplayNameInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "UpdateDisplayNameInput", raw, &out)
+	return out, err
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -1545,6 +3243,248 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var changePasswordPayloadImplementors = []string{"ChangePasswordPayload"}
+
+func (ec *executionContext) _ChangePasswordPayload(ctx context.Context, sel ast.SelectionSet, obj *model.ChangePasswordPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, changePasswordPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChangePasswordPayload")
+		case "viewer":
+			out.Values[i] = ec._ChangePasswordPayload_viewer(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._ChangePasswordPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var inputErrorImplementors = []string{"InputError"}
+
+func (ec *executionContext) _InputError(ctx context.Context, sel ast.SelectionSet, obj *model.InputError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inputErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InputError")
+		case "field":
+			out.Values[i] = ec._InputError_field(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._InputError_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var issueInvitationPayloadImplementors = []string{"IssueInvitationPayload"}
+
+func (ec *executionContext) _IssueInvitationPayload(ctx context.Context, sel ast.SelectionSet, obj *model.IssueInvitationPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, issueInvitationPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IssueInvitationPayload")
+		case "code":
+			out.Values[i] = ec._IssueInvitationPayload_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._IssueInvitationPayload_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var loginPayloadImplementors = []string{"LoginPayload"}
+
+func (ec *executionContext) _LoginPayload(ctx context.Context, sel ast.SelectionSet, obj *model.LoginPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, loginPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LoginPayload")
+		case "viewer":
+			out.Values[i] = ec._LoginPayload_viewer(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._LoginPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lockedUntil":
+			out.Values[i] = ec._LoginPayload_lockedUntil(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "register":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_register(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "login":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_login(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateDisplayName":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateDisplayName(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "changePassword":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_changePassword(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resetPassword":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_resetPassword(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "issueInvitation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_issueInvitation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
 
 var queryImplementors = []string{"Query"}
 
@@ -1571,6 +3511,12 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				func(ctx context.Context) graphql.Marshaler {
 					return ec._Query_health(ctx, field)
 				})
+		case "viewer":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_viewer(ctx, field)
+				})
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -1584,6 +3530,173 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			})
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var registerPayloadImplementors = []string{"RegisterPayload"}
+
+func (ec *executionContext) _RegisterPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RegisterPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, registerPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RegisterPayload")
+		case "viewer":
+			out.Values[i] = ec._RegisterPayload_viewer(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._RegisterPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var resetPasswordPayloadImplementors = []string{"ResetPasswordPayload"}
+
+func (ec *executionContext) _ResetPasswordPayload(ctx context.Context, sel ast.SelectionSet, obj *model.ResetPasswordPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, resetPasswordPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ResetPasswordPayload")
+		case "ok":
+			out.Values[i] = ec._ResetPasswordPayload_ok(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._ResetPasswordPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lockedUntil":
+			out.Values[i] = ec._ResetPasswordPayload_lockedUntil(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var updateDisplayNamePayloadImplementors = []string{"UpdateDisplayNamePayload"}
+
+func (ec *executionContext) _UpdateDisplayNamePayload(ctx context.Context, sel ast.SelectionSet, obj *model.UpdateDisplayNamePayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateDisplayNamePayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateDisplayNamePayload")
+		case "viewer":
+			out.Values[i] = ec._UpdateDisplayNamePayload_viewer(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._UpdateDisplayNamePayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var viewerImplementors = []string{"Viewer"}
+
+func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, obj *model.Viewer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, viewerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Viewer")
+		case "id":
+			out.Values[i] = ec._Viewer_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "loginId":
+			out.Values[i] = ec._Viewer_loginId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._Viewer_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isAdmin":
+			out.Values[i] = ec._Viewer_isAdmin(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -1978,6 +4091,114 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNChangePasswordInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐChangePasswordInput(ctx context.Context, v any) (model.ChangePasswordInput, error) {
+	res, err := ec.unmarshalInputChangePasswordInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNChangePasswordPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐChangePasswordPayload(ctx context.Context, sel ast.SelectionSet, v *model.ChangePasswordPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "ChangePasswordPayload!")
+		return graphql.Null
+	}
+	return ec._ChangePasswordPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		graphql.AddInvalidNullFromMarshaler(ctx, "ID!")
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNInputError2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputError(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNInputError2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputError(ctx context.Context, sel ast.SelectionSet, v *model.InputError) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "InputError!")
+		return graphql.Null
+	}
+	return ec._InputError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNInputErrorCode2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorCode(ctx context.Context, v any) (model.InputErrorCode, error) {
+	var res model.InputErrorCode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInputErrorCode2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorCode(ctx context.Context, sel ast.SelectionSet, v model.InputErrorCode) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNIssueInvitationPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐIssueInvitationPayload(ctx context.Context, sel ast.SelectionSet, v *model.IssueInvitationPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "IssueInvitationPayload!")
+		return graphql.Null
+	}
+	return ec._IssueInvitationPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
+	res, err := ec.unmarshalInputLoginInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNLoginPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLoginPayload(ctx context.Context, sel ast.SelectionSet, v *model.LoginPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "LoginPayload!")
+		return graphql.Null
+	}
+	return ec._LoginPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRegisterInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRegisterInput(ctx context.Context, v any) (model.RegisterInput, error) {
+	res, err := ec.unmarshalInputRegisterInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRegisterPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRegisterPayload(ctx context.Context, sel ast.SelectionSet, v *model.RegisterPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "RegisterPayload!")
+		return graphql.Null
+	}
+	return ec._RegisterPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNResetPasswordInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐResetPasswordInput(ctx context.Context, v any) (model.ResetPasswordInput, error) {
+	res, err := ec.unmarshalInputResetPasswordInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNResetPasswordPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐResetPasswordPayload(ctx context.Context, sel ast.SelectionSet, v *model.ResetPasswordPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "ResetPasswordPayload!")
+		return graphql.Null
+	}
+	return ec._ResetPasswordPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -1990,6 +4211,33 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		graphql.AddInvalidNullFromMarshaler(ctx, "String!")
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		graphql.AddInvalidNullFromMarshaler(ctx, "Time!")
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateDisplayNameInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateDisplayNameInput(ctx context.Context, v any) (model.UpdateDisplayNameInput, error) {
+	res, err := ec.unmarshalInputUpdateDisplayNameInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpdateDisplayNamePayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateDisplayNamePayload(ctx context.Context, sel ast.SelectionSet, v *model.UpdateDisplayNamePayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "UpdateDisplayNamePayload!")
+		return graphql.Null
+	}
+	return ec._UpdateDisplayNamePayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -2164,6 +4412,22 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOInputField2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputField(ctx context.Context, v any) (*model.InputField, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.InputField)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInputField2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputField(ctx context.Context, sel ast.SelectionSet, v *model.InputField) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -2180,6 +4444,31 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
+}
+
+func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Viewer(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
