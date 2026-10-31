@@ -13,7 +13,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/Qurioth/chara-q/apps/api/internal/config"
@@ -26,12 +25,7 @@ func New(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.
 	r.Use(middleware.RequestID)
 	r.Use(requestLogger(logger))
 	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: cfg.CORSAllowedOrigins,
-		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
-		MaxAge:         300,
-	}))
+	// ブラウザは web とだけ通信し、api へは rewrites で中継するため、CORS の許可は置かない（ADR 0006）
 
 	// /healthz はプロセスが動いているかだけを返す（DB の確認は GraphQL の health で行う）
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {

@@ -120,10 +120,11 @@ R2 のアクセスキーなど、後の Spec で必要になったシークレ�
 | 最小インスタンス数 | **0**（常時起動しない） |
 | 最大インスタンス数 | 小さく始める（例: 2） |
 | 認証 | 未認証の呼び出しを許可（アプリ側でセッションを確認する。ADR 0006） |
-| 環境変数 | `APP_ENV=production`、`CORS_ALLOWED_ORIGINS=<Vercel のドメイン>` |
+| 環境変数 | `APP_ENV=production` |
 | シークレット | `DATABASE_URL=database-url:latest` |
 
 - `PORT` は Cloud Run が渡すので設定しない。
+- CORS の許可は設定しない。ブラウザは Vercel の web とだけ通信し、api へは web が中継する（ADR 0006）。
 - 本番のマイグレーションをいつ・どう実行するか（Cloud Run ジョブ、デプロイ前のステップなど）は、
   本番環境構築の Spec で決める。
 
@@ -139,4 +140,6 @@ R2 のアクセスキーなど、後の Spec で必要になったシークレ�
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/<番号>/locations/global/workloadIdentityPools/github/providers/github` |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | `github-deployer@<プロジェクト ID>.iam.gserviceaccount.com` |
 | `GCP_RUNTIME_SERVICE_ACCOUNT` | `chara-q-api@<プロジェクト ID>.iam.gserviceaccount.com` |
-| `CLOUD_RUN_CORS_ALLOWED_ORIGINS` | `https://<Vercel のドメイン>` |
+
+- 以前の手順で `CLOUD_RUN_CORS_ALLOWED_ORIGINS` を登録していた場合は、使わなくなったので削除する
+  （認証の Spec で api の CORS の許可を外した。ADR 0006）。

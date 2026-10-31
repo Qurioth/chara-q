@@ -20,16 +20,14 @@ func TestLoad(t *testing.T) {
 		{
 			name: "すべて指定する",
 			env: map[string]string{
-				"PORT":                 "9000",
-				"DATABASE_URL":         "postgres://localhost/test",
-				"CORS_ALLOWED_ORIGINS": "http://localhost:3000, https://example.com ,",
-				"APP_ENV":              "development",
+				"PORT":         "9000",
+				"DATABASE_URL": "postgres://localhost/test",
+				"APP_ENV":      "development",
 			},
 			want: Config{
-				Port:               9000,
-				DatabaseURL:        "postgres://localhost/test",
-				CORSAllowedOrigins: []string{"http://localhost:3000", "https://example.com"},
-				Development:        true,
+				Port:        9000,
+				DatabaseURL: "postgres://localhost/test",
+				Development: true,
 			},
 		},
 		{

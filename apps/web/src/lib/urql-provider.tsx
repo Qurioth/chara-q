@@ -3,7 +3,8 @@
 import { useMemo, type ReactNode } from "react";
 import { Client, Provider, cacheExchange, fetchExchange } from "urql";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/graphql";
+// ブラウザは web とだけ通信する。/graphql は next.config.ts の rewrites で api に中継される（ADR 0006）
+const apiUrl = "/graphql";
 
 export function UrqlProvider({ children }: { children: ReactNode }) {
   const client = useMemo(

@@ -30,6 +30,8 @@ concurrency:
 
 env:
   NEXT_TELEMETRY_DISABLED: "1"
+  # next.config.ts の rewrites の中継先。型チェック（next typegen）とビルドで設定の読み込みに必要（ADR 0006）
+  API_URL: http://localhost:8080
 
 jobs:
   check:
@@ -76,5 +78,3 @@ jobs:
 
       - name: build
         run: pnpm --filter @chara-q/web build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080/graphql

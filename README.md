@@ -11,8 +11,8 @@ TRPG キャラクターシート管理アプリのモノレポ。
 ```
 ブラウザ
  ├─ Next.js（Vercel）                         apps/web
- │    └─ GraphQL → Go API（Cloud Run）         apps/api
- │                    └─ Postgres（Neon）
+ │    └─ /graphql を中継 → Go API（Cloud Run） apps/api
+ │                          └─ Postgres（Neon）
  └─ 画像の直接アップロード・表示 → Cloudflare R2
 ```
 
@@ -50,6 +50,7 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 開発時は http://localhost:8080/playground で GraphQL Playground が使える。
 
 ローカル用の接続先は `apps/api/.env` と `apps/web/.env`（`task setup` が `.env.example` から作る）。
+ブラウザは web とだけ通信し、`/graphql` は web が `API_URL`（`apps/web/.env`）の api に中継する（ADR 0006）。
 
 | サービス             | URL                   | 認証情報（ローカル専用）                               |
 | -------------------- | --------------------- | ------------------------------------------------------ |
