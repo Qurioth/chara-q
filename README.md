@@ -67,7 +67,8 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 | `task check:generated`        | 再生成してコミット済みの内容と差分がないか確認                 |
 | `task lint`                   | gofmt / goimports、go vet、golangci-lint、ESLint、型チェック   |
 | `task fmt`                    | Go のコードを整形                                              |
-| `task test`                   | api のテスト（DB を使うテストには `task db:up` が必要）        |
+| `task test`                   | api と web のテスト（api の DB を使うテストには `task db:up`） |
+| `task test:web`               | web のテストだけ（API と DB は不要）                           |
 | `task build`                  | api と web をビルド                                            |
 | `task docker:build`           | api の Docker イメージをビルド                                 |
 | `task db:up` / `task db:down` | ローカルの Postgres と RustFS を起動 / 停止                    |
@@ -101,6 +102,7 @@ type・scope・フッターなどのルールは [CLAUDE.md の「コミット�
 - **WebP 変換の実行場所**: ブラウザ / Go / Cloudflare Worker
 
 UI ライブラリは Tailwind CSS と shadcn/ui に決定した（[ADR 0004](docs/adr/0004-ui-library.md)）。
+shadcn/ui の土台（Base UI）、テーマ、フォント、web のテスト（Vitest）は [ADR 0007](docs/adr/0007-ui-foundation.md) で決めた。
 シートの公開範囲と既存シートの所有者も決定済み（[ADR 0005](docs/adr/0005-sheet-access-and-legacy-owner.md)）。
 一覧・検索・閲覧は誰でもでき、更新は所有者だけができる。既存シートはシステム管理者ユーザーの所有にする。
 認証も決定済み（[ADR 0006](docs/adr/0006-authentication.md)）。ログイン ID・パスワード・管理者が発行した
@@ -108,7 +110,7 @@ UI ライブラリは Tailwind CSS と shadcn/ui に決定した（[ADR 0004](do
 
 ## Spec Kit で進める予定の機能
 
-1. UI 基盤（Tailwind CSS と shadcn/ui の導入、ヘッダー・フッター、ダークモード、フォント、共通の入力部品）
+1. ✅ UI 基盤（Tailwind CSS と shadcn/ui の導入、ヘッダー・フッター、ダークモード、フォント、共通の入力部品）: [specs/001-ui-foundation](specs/001-ui-foundation/)
 2. 認証（招待コードでの登録、ログイン、Vercel 経由の中継、DB セッション、管理者用のコマンド）
 3. キャラクターシートの共通基盤（`interface CharacterSheet`、DB テーブル、一覧・検索・取得・作成・更新）
 4. 本番環境の構築とデプロイ（Cloud Run、Artifact Registry、予算アラート、Neon、Vercel）

@@ -110,9 +110,10 @@ tasks:
       - golangci-lint fmt ./...
 
   test:
-    desc: テストを実行する（DB を使うテストには `task db:up` が必要）
+    desc: テストを実行する（api と web。api の DB を使うテストには `task db:up` が必要）
     cmds:
       - task: test:api
+      - task: test:web
 
   test:api:
     desc: api のテスト
@@ -120,6 +121,11 @@ tasks:
     dotenv: [.env]
     cmds:
       - go test ./...
+
+  test:web:
+    desc: web のテスト（API と DB は不要）
+    cmds:
+      - pnpm --filter {{.WEB_PKG}} test
 
   build:
     desc: api と web をビルドする
