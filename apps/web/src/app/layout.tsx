@@ -33,14 +33,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <UrqlProvider>
           <SkipLink />
           <SiteHeader
+            utilities={<ThemeToggle />}
             actions={
-              <>
-                <ThemeToggle />
-                {/* ログイン状態は cookies() を読むため、外枠とは別にストリーミングする（cacheComponents） */}
-                <Suspense fallback={<AccountAreaFallback />}>
-                  <AccountArea />
-                </Suspense>
-              </>
+              // ログイン状態は cookies() を読むため、外枠とは別にストリーミングする（cacheComponents）
+              <Suspense fallback={<AccountAreaFallback />}>
+                <AccountArea />
+              </Suspense>
             }
           />
           <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
