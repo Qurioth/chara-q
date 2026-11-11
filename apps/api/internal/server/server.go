@@ -13,7 +13,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/Qurioth/chara-q/apps/api/internal/config"
@@ -26,12 +25,7 @@ func New(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.
 	r.Use(middleware.RequestID)
 	r.Use(requestLogger(logger))
 	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: cfg.CORSAllowedOrigins,
-		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
-		MaxAge:         300,
-	}))
+	// ブラウザは web とだけ通信し、api へは rewrites で中継するため、CORS の許可は置かない（ADR 0006）
 
 	// /healthz はプロセスが動いているかだけを返す（DB の確認は GraphQL の health で行う）
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -39,18 +33,23 @@ func New(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	r.Handle("/graphql", newGraphQLHandler(cfg, resolver))
+	// セッションの Cookie から本人を読む（ADR 0006）
+	r.With(resolver.Auth.Middleware).Handle("/graphql", newGraphQLHandler(cfg, resolver, logger))
 	if cfg.Development {
 		r.Handle("/playground", playground.Handler("chara-q GraphQL", "/graphql"))
 	}
 	return r
 }
 
-func newGraphQLHandler(cfg config.Config, resolver *graph.Resolver) http.Handler {
+func newGraphQLHandler(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.Handler {
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	// CSRF の対策: ミューテーションは POST かつ application/json だけで受け付ける（FR-005、research R4）。
+	// gqlgen の POST は application/json だけを、GET はクエリだけを受け付ける。
+	// フォームや multipart の transport は追加しない（server_test.go で確かめる）
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
+	srv.SetErrorPresenter(graph.ErrorPresenter(logger))
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	if cfg.Development {
 		srv.Use(extension.Introspection{})

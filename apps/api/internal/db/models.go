@@ -3,3 +3,55 @@
 //   sqlc v1.31.1
 
 package db
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type AuthFailure struct {
+	Purpose      string     `json:"purpose"`
+	LoginIDKey   string     `json:"login_id_key"`
+	FailureCount int32      `json:"failure_count"`
+	LastFailedAt time.Time  `json:"last_failed_at"`
+	LockedUntil  *time.Time `json:"locked_until"`
+}
+
+type Invitation struct {
+	ID        uuid.UUID  `json:"id"`
+	CodeHash  []byte     `json:"code_hash"`
+	IssuedBy  uuid.UUID  `json:"issued_by"`
+	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at"`
+	UsedBy    *uuid.UUID `json:"used_by"`
+}
+
+type PasswordResetCode struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	CodeHash  []byte     `json:"code_hash"`
+	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at"`
+}
+
+type Session struct {
+	TokenHash  []byte    `json:"token_hash"`
+	UserID     uuid.UUID `json:"user_id"`
+	CreatedAt  time.Time `json:"created_at"`
+	LastUsedAt time.Time `json:"last_used_at"`
+	ExpiresAt  time.Time `json:"expires_at"`
+}
+
+type User struct {
+	ID           uuid.UUID  `json:"id"`
+	LoginID      string     `json:"login_id"`
+	DisplayName  string     `json:"display_name"`
+	PasswordHash string     `json:"password_hash"`
+	IsAdmin      bool       `json:"is_admin"`
+	DisabledAt   *time.Time `json:"disabled_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}

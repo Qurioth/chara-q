@@ -2,5 +2,245 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+)
+
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
+type ChangePasswordPayload struct {
+	// 成功したときだけ値がある
+	Viewer *Viewer       `json:"viewer,omitempty"`
+	Errors []*InputError `json:"errors"`
+}
+
+// 利用者が入力を直せば解決する失敗
+type InputError struct {
+	// どの項目の失敗か。フォーム全体の失敗なら null
+	Field *InputField    `json:"field,omitempty"`
+	Code  InputErrorCode `json:"code"`
+}
+
+type IssueInvitationPayload struct {
+	// 発行したときにだけ返す。4 文字ごとにハイフンで区切った形
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type LoginInput struct {
+	LoginID  string `json:"loginId"`
+	Password string `json:"password"`
+}
+
+type LoginPayload struct {
+	// 成功したときだけ値がある
+	Viewer *Viewer       `json:"viewer,omitempty"`
+	Errors []*InputError `json:"errors"`
+	// errors に LOCKED があるときだけ値がある
+	LockedUntil *time.Time `json:"lockedUntil,omitempty"`
+}
+
+type Mutation struct {
+}
+
 type Query struct {
+}
+
+type RegisterInput struct {
+	InvitationCode string `json:"invitationCode"`
+	LoginID        string `json:"loginId"`
+	Password       string `json:"password"`
+	DisplayName    string `json:"displayName"`
+}
+
+type RegisterPayload struct {
+	// 成功したときだけ値がある
+	Viewer *Viewer       `json:"viewer,omitempty"`
+	Errors []*InputError `json:"errors"`
+}
+
+type ResetPasswordInput struct {
+	LoginID     string `json:"loginId"`
+	ResetCode   string `json:"resetCode"`
+	NewPassword string `json:"newPassword"`
+}
+
+type ResetPasswordPayload struct {
+	Ok     bool          `json:"ok"`
+	Errors []*InputError `json:"errors"`
+	// errors に LOCKED があるときだけ値がある
+	LockedUntil *time.Time `json:"lockedUntil,omitempty"`
+}
+
+type UpdateDisplayNameInput struct {
+	DisplayName string `json:"displayName"`
+}
+
+type UpdateDisplayNamePayload struct {
+	// 成功したときだけ値がある
+	Viewer *Viewer       `json:"viewer,omitempty"`
+	Errors []*InputError `json:"errors"`
+}
+
+// ログインしている本人
+type Viewer struct {
+	ID string `json:"id"`
+	// 本人にだけ見せる
+	LoginID string `json:"loginId"`
+	// 公開される
+	DisplayName string `json:"displayName"`
+	IsAdmin     bool   `json:"isAdmin"`
+}
+
+type InputErrorCode string
+
+const (
+	// 未入力
+	InputErrorCodeRequired InputErrorCode = "REQUIRED"
+	// 短すぎる
+	InputErrorCodeTooShort InputErrorCode = "TOO_SHORT"
+	// 長すぎる
+	InputErrorCodeTooLong InputErrorCode = "TOO_LONG"
+	// 使えない文字を含む
+	InputErrorCodeInvalidCharacters InputErrorCode = "INVALID_CHARACTERS"
+	// 招待コードが存在しない・使用済み・期限切れ（区別しない）
+	InputErrorCodeInvitationUnavailable InputErrorCode = "INVITATION_UNAVAILABLE"
+	// ログイン ID が使われている
+	InputErrorCodeLoginIDTaken InputErrorCode = "LOGIN_ID_TAKEN"
+	// ログイン ID・パスワードが違う、またはユーザーが無効（区別しない）
+	InputErrorCodeInvalidCredentials InputErrorCode = "INVALID_CREDENTIALS"
+	// 続けて失敗したため一時的にロックしている
+	InputErrorCodeLocked InputErrorCode = "LOCKED"
+	// 現在のパスワードが違う
+	InputErrorCodeWrongCurrentPassword InputErrorCode = "WRONG_CURRENT_PASSWORD"
+	// 再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない）
+	InputErrorCodeResetCodeUnavailable InputErrorCode = "RESET_CODE_UNAVAILABLE"
+)
+
+var AllInputErrorCode = []InputErrorCode{
+	InputErrorCodeRequired,
+	InputErrorCodeTooShort,
+	InputErrorCodeTooLong,
+	InputErrorCodeInvalidCharacters,
+	InputErrorCodeInvitationUnavailable,
+	InputErrorCodeLoginIDTaken,
+	InputErrorCodeInvalidCredentials,
+	InputErrorCodeLocked,
+	InputErrorCodeWrongCurrentPassword,
+	InputErrorCodeResetCodeUnavailable,
+}
+
+func (e InputErrorCode) IsValid() bool {
+	switch e {
+	case InputErrorCodeRequired, InputErrorCodeTooShort, InputErrorCodeTooLong, InputErrorCodeInvalidCharacters, InputErrorCodeInvitationUnavailable, InputErrorCodeLoginIDTaken, InputErrorCodeInvalidCredentials, InputErrorCodeLocked, InputErrorCodeWrongCurrentPassword, InputErrorCodeResetCodeUnavailable:
+		return true
+	}
+	return false
+}
+
+func (e InputErrorCode) String() string {
+	return string(e)
+}
+
+func (e *InputErrorCode) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InputErrorCode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InputErrorCode", str)
+	}
+	return nil
+}
+
+func (e InputErrorCode) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InputErrorCode) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InputErrorCode) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type InputField string
+
+const (
+	InputFieldInvitationCode  InputField = "INVITATION_CODE"
+	InputFieldLoginID         InputField = "LOGIN_ID"
+	InputFieldPassword        InputField = "PASSWORD"
+	InputFieldCurrentPassword InputField = "CURRENT_PASSWORD"
+	InputFieldNewPassword     InputField = "NEW_PASSWORD"
+	InputFieldDisplayName     InputField = "DISPLAY_NAME"
+	InputFieldResetCode       InputField = "RESET_CODE"
+)
+
+var AllInputField = []InputField{
+	InputFieldInvitationCode,
+	InputFieldLoginID,
+	InputFieldPassword,
+	InputFieldCurrentPassword,
+	InputFieldNewPassword,
+	InputFieldDisplayName,
+	InputFieldResetCode,
+}
+
+func (e InputField) IsValid() bool {
+	switch e {
+	case InputFieldInvitationCode, InputFieldLoginID, InputFieldPassword, InputFieldCurrentPassword, InputFieldNewPassword, InputFieldDisplayName, InputFieldResetCode:
+		return true
+	}
+	return false
+}
+
+func (e InputField) String() string {
+	return string(e)
+}
+
+func (e *InputField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InputField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InputField", str)
+	}
+	return nil
+}
+
+func (e InputField) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InputField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InputField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

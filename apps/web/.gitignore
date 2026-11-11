@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+# next dev --experimental-https（task dev:web:https）が作る自己署名の証明書
+/certificates/
 
 # debug
 npm-debug.log*

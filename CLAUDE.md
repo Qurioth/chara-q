@@ -20,6 +20,7 @@ task test             # api と web のテスト（api の DB を使うテスト
 task test:web         # web のテストだけ（API と DB は不要）
 task check:generated  # 生成コードがコミット済みの内容と一致するか確認
 task db:new -- <名前> # マイグレーションファイルを作る
+task admin:create -- -login-id <ID> -display-name <表示名>  # 管理者を作る（パスワードは入力を求める）
 ```
 
 `task --list` ですべてのタスクを確認できる。

@@ -11,8 +11,8 @@ TRPG キャラクターシート管理アプリのモノレポ。
 ```
 ブラウザ
  ├─ Next.js（Vercel）                         apps/web
- │    └─ GraphQL → Go API（Cloud Run）         apps/api
- │                    └─ Postgres（Neon）
+ │    └─ /graphql を中継 → Go API（Cloud Run） apps/api
+ │                          └─ Postgres（Neon）
  └─ 画像の直接アップロード・表示 → Cloudflare R2
 ```
 
@@ -50,6 +50,17 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 開発時は http://localhost:8080/playground で GraphQL Playground が使える。
 
 ローカル用の接続先は `apps/api/.env` と `apps/web/.env`（`task setup` が `.env.example` から作る）。
+ブラウザは web とだけ通信し、`/graphql` は web が `API_URL`（`apps/web/.env`）の api に中継する（ADR 0006）。
+
+### 最初の管理者を作る
+
+ユーザー登録には管理者が発行した招待コードが要るため、最初の管理者はコマンドで作る（ADR 0006）。
+
+```sh
+task admin:create -- -login-id admin -display-name 管理者   # パスワードは入力を求められる
+```
+
+http://localhost:3000/login でログインし、ヘッダーのメニューの「招待コードの発行」で招待コードを発行できる。
 
 | サービス             | URL                   | 認証情報（ローカル専用）                               |
 | -------------------- | --------------------- | ------------------------------------------------------ |
@@ -68,6 +79,7 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 | `task lint`                   | gofmt / goimports、go vet、golangci-lint、ESLint、型チェック   |
 | `task fmt`                    | Go のコードを整形                                              |
 | `task test`                   | api と web のテスト（api の DB を使うテストには `task db:up`） |
+| `task db:test:prepare`        | テスト用の DB（`chara_q_test`）を作り、マイグレーションを適用（`test:api` が実行する） |
 | `task test:web`               | web のテストだけ（API と DB は不要）                           |
 | `task build`                  | api と web をビルド                                            |
 | `task docker:build`           | api の Docker イメージをビルド                                 |
@@ -76,6 +88,14 @@ http://localhost:3000 に「API: ok」と表示されれば、web → api → DB
 | `task db:status`              | マイグレーションの適用状況を表示                               |
 | `task db:reset`               | マイグレーションをすべて戻してから適用し直す（データは消える） |
 | `task db:new -- <名前>`       | マイグレーションファイルを作る                                 |
+| `task admin:create -- -login-id <ID> -display-name <表示名>` | 管理者ユーザーを作る（パスワードは入力を求める） |
+| `task admin:users`            | ユーザーの一覧                                                 |
+| `task admin:reset-code -- <ログイン ID>` | パスワードの再設定コードを発行                      |
+| `task admin:disable -- <ログイン ID>` / `task admin:enable -- <ログイン ID>` | ユーザーを無効にする / 有効に戻す |
+| `task dev:web:https`          | web を `https://localhost:3000` で起動（Safari で Cookie を確かめるとき） |
+
+`admin:*` の接続先は `apps/api/.env` の `DATABASE_URL`。本番の DB に対して実行するときは、シェルで
+`DATABASE_URL` を設定してから実行する（`.env` の値より優先される）。
 
 `task --list` ですべてのタスクを確認できる。
 

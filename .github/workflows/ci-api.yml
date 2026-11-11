@@ -80,7 +80,8 @@ jobs:
         run: go tool -modfile=tools/go.mod goose -dir db/migrations postgres "$TEST_DATABASE_URL" up
 
       - name: go test
-        run: go test -race ./...
+        # DB を使うテストは表を空にするため、パッケージを並列に実行しない
+        run: go test -race -p 1 ./...
 
       - name: 生成コードに差分がないことを確認（sqlc / gqlgen）
         run: |

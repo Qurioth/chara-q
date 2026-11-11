@@ -27,16 +27,17 @@ git diff --quiet HEAD^ HEAD -- . ../../schema ../../package.json ../../pnpm-work
 
 | 名前 | 環境 | 値 |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | Production | `https://<Cloud Run の URL>/graphql` |
-| `NEXT_PUBLIC_API_URL` | Preview | 本番 API か、プレビュー用の API の URL（Spec で決める） |
+| `API_URL` | Production | `https://<Cloud Run の URL>`（パスなし、末尾の `/` なし） |
+| `API_URL` | Preview | 本番環境の構築の Spec で決める |
 
-- `NEXT_PUBLIC_` で始まる値はブラウザに公開される。シークレットは入れない。
-- [ADR 0006](../docs/adr/0006-authentication.md) で、api へは Next.js の `rewrites` で中継することにした。
-  認証の Spec で、`NEXT_PUBLIC_API_URL` を中継先を表すサーバー側の環境変数に置き換える
-  （変数名はその Spec で決める）。
+- ブラウザは web とだけ通信し、`/graphql` は `next.config.ts` の `rewrites` で `API_URL` に中継する
+  （[ADR 0006](../docs/adr/0006-authentication.md)、`specs/002-auth`）。Server Components もこの URL に直接つなぐ。
+- `API_URL` はブラウザに出さないため、`NEXT_PUBLIC_` を付けない。`rewrites` はビルドのときに評価されるため、
+  ビルドでも必要になる（未設定ならビルドが失敗する）。
+- 以前の手順で `NEXT_PUBLIC_API_URL` を登録していた場合は、使わなくなったので削除する。
 
 ## 4. ドメイン
 
 - 独自ドメインは使わず、Vercel のドメイン（`*.vercel.app`）をそのまま使う（ADR 0006）。
 - Vercel のドメインが決まったら、R2 の CORS に追加する（ブラウザから R2 へ直接アップロードするため）。
-- api は Vercel 経由で呼ぶため、api の CORS は不要になる見込み（認証の Spec で決める）。
+- api は Vercel 経由で呼ぶため、api の CORS の許可は外した（認証の Spec）。

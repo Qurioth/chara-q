@@ -15,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Qurioth/chara-q/apps/api/internal/auth"
 	"github.com/Qurioth/chara-q/apps/api/internal/config"
 	"github.com/Qurioth/chara-q/apps/api/internal/db"
 	"github.com/Qurioth/chara-q/apps/api/internal/graph"
@@ -54,7 +55,7 @@ func run(logger *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.Port),
-		Handler:           server.New(cfg, &graph.Resolver{Queries: queries}, logger),
+		Handler:           server.New(cfg, &graph.Resolver{Queries: queries, Auth: auth.NewService(pool, logger)}, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

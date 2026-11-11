@@ -52,19 +52,29 @@ ADR 0001 では「Go が JWT を発行し、Next.js はそれを渡すだけ」�
 
 ## 後続の Spec で決めること
 
-認証の Spec の `/speckit-clarify` で決める。
+認証の Spec（[specs/002-auth](../../specs/002-auth/spec.md)）の `/speckit-clarify` で、次のとおり決めた
+（2026-10-31）。
 
-- ログイン ID に使える文字と長さ、パスワードの最小の長さ
-- ロックするまでの失敗回数とロックの時間、招待コードと再設定コードの有効期限、
-  セッションの有効期限
-- 管理者の操作（招待コードの発行、ユーザーの無効化、所有者の移動）を、Taskfile の
-  コマンドだけにするか、管理画面も作るか
-- 招待コードに既存シートを紐づけ、登録したときに所有者を自動で移すか
-  （ADR 0005 の「DB 操作で所有者を移す」を置き換える案）
-- Server Components から api を呼ぶときに、Cookie をどう渡すか
+| 事項 | 決定 |
+|---|---|
+| ログイン ID とパスワードの規則 | ログイン ID は半角英数字・`_`・`-` の 3〜32 文字（大文字と小文字は区別しない）。パスワードは 8〜128 文字で、文字の種類は問わない。表示名は 1〜32 文字 |
+| ロックと有効期限 | 5 回続けて失敗したら 15 分ロックする。招待コードは 7 日、再設定コードは 24 時間。セッションは最後に使ってから 30 日で、使うたびに延びる |
+| 管理者の操作 | 招待コードの発行だけを web の管理画面（管理者だけ）で行う。最初の管理者の作成、再設定コードの発行、ユーザーの一覧・無効化・有効化は Taskfile の `admin:*` で行う |
+| 招待コードと既存シートの紐づけ | 認証の Spec では何も用意しない。紐づけるかどうかは、データ移行の Spec でもう一度決める。所有者の移動は ADR 0005 のまま |
+| Server Components からの Cookie の渡し方 | ブラウザから受け取った Cookie のうち、セッションの Cookie だけを付けて、サーバー側の環境変数 `API_URL` の api に直接送る |
+| CORS の許可 | ローカル・CI・本番のすべてで外す（`CORS_ALLOWED_ORIGINS`、GitHub 変数 `CLOUD_RUN_CORS_ALLOWED_ORIGINS`） |
 
-認証の Spec の最初に、Vercel の `rewrites` を通しても `Set-Cookie` がブラウザに届き、
-Cookie が api まで送られることを確かめる。
+実装の最初に、`rewrites` を通しても `Set-Cookie` がブラウザに届き、Cookie が api まで送られることを、
+ローカル（Chromium、`next build` と `next start`）で確かめた。Safari・Firefox と Vercel での確認は、
+本番環境の構築の Spec で行う。
+
+実装で決めた細かい点（理由は [specs/002-auth/research.md](../../specs/002-auth/research.md)）:
+
+- Cookie の名前は `__Host-chara_q_session`。`__Host-` 接頭辞で、`Secure`・`Path=/`・`Domain` なしをブラウザに
+  強制させる。`Max-Age` は 400 日とし、有効かどうかは DB のセッションの期限で決める
+  （Server Components が受け取った `Set-Cookie` はブラウザに届かず、Cookie を付け直せないため）。
+- 招待コード・再設定コード・セッション ID は 128 ビットの乱数で、DB には SHA-256 だけを保存する。
+  パスワードの Argon2id のパラメーターは m = 19 MiB、t = 2、p = 1。
 
 ## 検討した代案
 
@@ -82,11 +92,10 @@ Cookie が api まで送られることを確かめる。
 
 - メールアドレスなどの個人情報を持たずに済む。登録できるのは、管理者が招待した人だけになる。
 - 管理者の作業が増える。招待コードと再設定コードの発行が、管理者の作業になる。
-- web と api が同じオリジンに見えるため、本番では CORS の設定がいらなくなる。
-  - `CORS_ALLOWED_ORIGINS` と GitHub 変数 `CLOUD_RUN_CORS_ALLOWED_ORIGINS` を外すかは、
-    認証の Spec で決める。
-- 今の骨格の urql は `NEXT_PUBLIC_API_URL` で api に直接つないでいる。これは認証の Spec で、
-  相対パスの `/graphql` に変える。
+- web と api が同じオリジンに見えるため、CORS の設定がいらなくなる。
+  - 認証の Spec で、`CORS_ALLOWED_ORIGINS` と GitHub 変数 `CLOUD_RUN_CORS_ALLOWED_ORIGINS` を外した。
+- urql の接続先は、認証の Spec で `NEXT_PUBLIC_API_URL` から相対パスの `/graphql` に変えた。
+  中継先はサーバー側の環境変数 `API_URL` にした。
 - api へのリクエストは Vercel を経由するため、通信が 1 段増える。
 - Cloud Run の URL は公開されたまま残る。ただし、セッションの Cookie は `vercel.app` 側にしか
   送られないため、Cloud Run の URL に直接アクセスしてもログイン状態は使えない。

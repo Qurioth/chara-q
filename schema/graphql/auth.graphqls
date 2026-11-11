@@ -1,0 +1,140 @@
+# 認証（specs/002-auth）。ログイン状態はセッションの Cookie で持つ（ADR 0006）。
+# ログイン ID は本人（Viewer）にだけ返す。他のユーザーの情報には loginId を持たせない（FR-034）。
+
+extend type Query {
+  "ログインしている本人。ログインしていなければ null"
+  viewer: Viewer
+}
+
+"ログインしている本人"
+type Viewer {
+  id: ID!
+  "本人にだけ見せる"
+  loginId: String!
+  "公開される"
+  displayName: String!
+  isAdmin: Boolean!
+}
+
+type Mutation {
+  "招待コードで登録し、そのままログインする"
+  register(input: RegisterInput!): RegisterPayload!
+  "ログインする。成功したらセッションの Cookie を設定する"
+  login(input: LoginInput!): LoginPayload!
+  "ログアウトする。ログインしていなくても成功する"
+  logout: Boolean!
+  "自分の表示名を変える（ログインが必要）"
+  updateDisplayName(input: UpdateDisplayNameInput!): UpdateDisplayNamePayload!
+  "自分のパスワードを変える（ログインが必要）。ほかのセッションはすべて切れる"
+  changePassword(input: ChangePasswordInput!): ChangePasswordPayload!
+  "再設定コードでパスワードを設定し直す。ログインはしない"
+  resetPassword(input: ResetPasswordInput!): ResetPasswordPayload!
+  "招待コードを発行する（管理者だけ）"
+  issueInvitation: IssueInvitationPayload!
+}
+
+input RegisterInput {
+  invitationCode: String!
+  loginId: String!
+  password: String!
+  displayName: String!
+}
+
+type RegisterPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input LoginInput {
+  loginId: String!
+  password: String!
+}
+
+type LoginPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+  "errors に LOCKED があるときだけ値がある"
+  lockedUntil: Time
+}
+
+input UpdateDisplayNameInput {
+  displayName: String!
+}
+
+type UpdateDisplayNamePayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+}
+
+type ChangePasswordPayload {
+  "成功したときだけ値がある"
+  viewer: Viewer
+  errors: [InputError!]!
+}
+
+input ResetPasswordInput {
+  loginId: String!
+  resetCode: String!
+  newPassword: String!
+}
+
+type ResetPasswordPayload {
+  ok: Boolean!
+  errors: [InputError!]!
+  "errors に LOCKED があるときだけ値がある"
+  lockedUntil: Time
+}
+
+type IssueInvitationPayload {
+  "発行したときにだけ返す。4 文字ごとにハイフンで区切った形"
+  code: String!
+  expiresAt: Time!
+}
+
+"利用者が入力を直せば解決する失敗"
+type InputError {
+  "どの項目の失敗か。フォーム全体の失敗なら null"
+  field: InputField
+  code: InputErrorCode!
+}
+
+enum InputField {
+  INVITATION_CODE
+  LOGIN_ID
+  PASSWORD
+  CURRENT_PASSWORD
+  NEW_PASSWORD
+  DISPLAY_NAME
+  RESET_CODE
+}
+
+enum InputErrorCode {
+  "未入力"
+  REQUIRED
+  "短すぎる"
+  TOO_SHORT
+  "長すぎる"
+  TOO_LONG
+  "使えない文字を含む"
+  INVALID_CHARACTERS
+  "招待コードが存在しない・使用済み・期限切れ（区別しない）"
+  INVITATION_UNAVAILABLE
+  "ログイン ID が使われている"
+  LOGIN_ID_TAKEN
+  "ログイン ID・パスワードが違う、またはユーザーが無効（区別しない）"
+  INVALID_CREDENTIALS
+  "続けて失敗したため一時的にロックしている"
+  LOCKED
+  "現在のパスワードが違う"
+  WRONG_CURRENT_PASSWORD
+  "再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない）"
+  RESET_CODE_UNAVAILABLE
+}

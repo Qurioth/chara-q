@@ -26,6 +26,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+# Claude のプレビューの起動設定（ポートや接続先が人によって違う）
+.claude/launch.json
 
 # テスト
 coverage/
