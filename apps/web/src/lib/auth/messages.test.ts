@@ -59,3 +59,17 @@ describe("lockedMessage", () => {
     );
   });
 });
+
+describe("シートの入力の失敗の文言（specs/003-character-sheet-base）", () => {
+  it.each([
+    ["CHARACTER_NAME", "REQUIRED", "キャラクター名を入力してください"],
+    ["CHARACTER_NAME", "TOO_LONG", "キャラクター名は 100 文字以内で入力してください"],
+    ["MEMO", "TOO_LONG", "メモは 10000 文字以内で入力してください"],
+    ["PLAYER_NAME", "INVALID_CHARACTERS", "プレイヤー名に改行などの制御文字は使えません"],
+    ["DATA", "NOT_OBJECT", "シートの内容の形が正しくありません"],
+    ["DATA", "TOO_LARGE", "シートの内容が大きすぎます"],
+    [null, "REVISION_CONFLICT", "ほかの場所でシートが更新されました。読み込み直してから、もう一度保存してください"],
+  ] as const)("%s の %s", (field, code, want) => {
+    expect(inputErrorMessage(field, code)).toBe(want);
+  });
+});

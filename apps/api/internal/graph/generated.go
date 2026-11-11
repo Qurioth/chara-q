@@ -5,6 +5,7 @@ package graph
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/Qurioth/chara-q/apps/api/internal/graph/model"
+	"github.com/Qurioth/chara-q/apps/api/internal/graph/scalar"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -28,17 +30,51 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
 type ResolverRoot interface {
+	BeginningIdolSheet() BeginningIdolSheetResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	YuyakekoyakeSheet() YuyakekoyakeSheetResolver
 }
 
 type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	BeginningIdolSheet struct {
+		Age           func(childComplexity int) int
+		CharacterName func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		Data          func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Memo          func(childComplexity int) int
+		Owner         func(childComplexity int) int
+		PlayerName    func(childComplexity int) int
+		Revision      func(childComplexity int) int
+		Sex           func(childComplexity int) int
+		System        func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+	}
+
 	ChangePasswordPayload struct {
 		Errors func(childComplexity int) int
 		Viewer func(childComplexity int) int
+	}
+
+	CharacterSheetPage struct {
+		Nodes      func(childComplexity int) int
+		Page       func(childComplexity int) int
+		PageSize   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+		TotalPages func(childComplexity int) int
+	}
+
+	CharacterSheetPayload struct {
+		CharacterSheet func(childComplexity int) int
+		Errors         func(childComplexity int) int
+	}
+
+	DeleteCharacterSheetPayload struct {
+		DeletedID func(childComplexity int) int
 	}
 
 	InputError struct {
@@ -58,18 +94,24 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ChangePassword    func(childComplexity int, input model.ChangePasswordInput) int
-		IssueInvitation   func(childComplexity int) int
-		Login             func(childComplexity int, input model.LoginInput) int
-		Logout            func(childComplexity int) int
-		Register          func(childComplexity int, input model.RegisterInput) int
-		ResetPassword     func(childComplexity int, input model.ResetPasswordInput) int
-		UpdateDisplayName func(childComplexity int, input model.UpdateDisplayNameInput) int
+		ChangePassword       func(childComplexity int, input model.ChangePasswordInput) int
+		CopyCharacterSheet   func(childComplexity int, id string) int
+		CreateCharacterSheet func(childComplexity int, input model.CreateCharacterSheetInput) int
+		DeleteCharacterSheet func(childComplexity int, id string) int
+		IssueInvitation      func(childComplexity int) int
+		Login                func(childComplexity int, input model.LoginInput) int
+		Logout               func(childComplexity int) int
+		Register             func(childComplexity int, input model.RegisterInput) int
+		ResetPassword        func(childComplexity int, input model.ResetPasswordInput) int
+		UpdateCharacterSheet func(childComplexity int, input model.UpdateCharacterSheetInput) int
+		UpdateDisplayName    func(childComplexity int, input model.UpdateDisplayNameInput) int
 	}
 
 	Query struct {
-		Health func(childComplexity int) int
-		Viewer func(childComplexity int) int
+		CharacterSheet  func(childComplexity int, id string) int
+		CharacterSheets func(childComplexity int, filter *model.CharacterSheetFilter, orderBy model.CharacterSheetOrder, page int) int
+		Health          func(childComplexity int) int
+		Viewer          func(childComplexity int) int
 	}
 
 	RegisterPayload struct {
@@ -88,11 +130,31 @@ type ComplexityRoot struct {
 		Viewer func(childComplexity int) int
 	}
 
+	User struct {
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
+	}
+
 	Viewer struct {
 		DisplayName func(childComplexity int) int
 		ID          func(childComplexity int) int
 		IsAdmin     func(childComplexity int) int
 		LoginID     func(childComplexity int) int
+	}
+
+	YuyakekoyakeSheet struct {
+		Age           func(childComplexity int) int
+		CharacterName func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		Data          func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Memo          func(childComplexity int) int
+		Owner         func(childComplexity int) int
+		PlayerName    func(childComplexity int) int
+		Revision      func(childComplexity int) int
+		Sex           func(childComplexity int) int
+		System        func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
 	}
 }
 
@@ -100,6 +162,9 @@ type ComplexityRoot struct {
 
 // region    ************************** generated!.gotpl **************************
 
+type BeginningIdolSheetResolver interface {
+	Owner(ctx context.Context, obj *model.BeginningIdolSheet) (*model.User, error)
+}
 type MutationResolver interface {
 	Register(ctx context.Context, input model.RegisterInput) (*model.RegisterPayload, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.LoginPayload, error)
@@ -108,10 +173,19 @@ type MutationResolver interface {
 	ChangePassword(ctx context.Context, input model.ChangePasswordInput) (*model.ChangePasswordPayload, error)
 	ResetPassword(ctx context.Context, input model.ResetPasswordInput) (*model.ResetPasswordPayload, error)
 	IssueInvitation(ctx context.Context) (*model.IssueInvitationPayload, error)
+	CreateCharacterSheet(ctx context.Context, input model.CreateCharacterSheetInput) (*model.CharacterSheetPayload, error)
+	UpdateCharacterSheet(ctx context.Context, input model.UpdateCharacterSheetInput) (*model.CharacterSheetPayload, error)
+	CopyCharacterSheet(ctx context.Context, id string) (*model.CharacterSheetPayload, error)
+	DeleteCharacterSheet(ctx context.Context, id string) (*model.DeleteCharacterSheetPayload, error)
 }
 type QueryResolver interface {
 	Health(ctx context.Context) (string, error)
 	Viewer(ctx context.Context) (*model.Viewer, error)
+	CharacterSheet(ctx context.Context, id string) (model.CharacterSheet, error)
+	CharacterSheets(ctx context.Context, filter *model.CharacterSheetFilter, orderBy model.CharacterSheetOrder, page int) (*model.CharacterSheetPage, error)
+}
+type YuyakekoyakeSheetResolver interface {
+	Owner(ctx context.Context, obj *model.YuyakekoyakeSheet) (*model.User, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -132,6 +206,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "BeginningIdolSheet.age":
+		if e.ComplexityRoot.BeginningIdolSheet.Age == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Age(childComplexity), true
+	case "BeginningIdolSheet.characterName":
+		if e.ComplexityRoot.BeginningIdolSheet.CharacterName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.CharacterName(childComplexity), true
+	case "BeginningIdolSheet.createdAt":
+		if e.ComplexityRoot.BeginningIdolSheet.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.CreatedAt(childComplexity), true
+	case "BeginningIdolSheet.data":
+		if e.ComplexityRoot.BeginningIdolSheet.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Data(childComplexity), true
+	case "BeginningIdolSheet.id":
+		if e.ComplexityRoot.BeginningIdolSheet.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.ID(childComplexity), true
+	case "BeginningIdolSheet.memo":
+		if e.ComplexityRoot.BeginningIdolSheet.Memo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Memo(childComplexity), true
+	case "BeginningIdolSheet.owner":
+		if e.ComplexityRoot.BeginningIdolSheet.Owner == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Owner(childComplexity), true
+	case "BeginningIdolSheet.playerName":
+		if e.ComplexityRoot.BeginningIdolSheet.PlayerName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.PlayerName(childComplexity), true
+	case "BeginningIdolSheet.revision":
+		if e.ComplexityRoot.BeginningIdolSheet.Revision == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Revision(childComplexity), true
+	case "BeginningIdolSheet.sex":
+		if e.ComplexityRoot.BeginningIdolSheet.Sex == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.Sex(childComplexity), true
+	case "BeginningIdolSheet.system":
+		if e.ComplexityRoot.BeginningIdolSheet.System == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.System(childComplexity), true
+	case "BeginningIdolSheet.updatedAt":
+		if e.ComplexityRoot.BeginningIdolSheet.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BeginningIdolSheet.UpdatedAt(childComplexity), true
+
 	case "ChangePasswordPayload.errors":
 		if e.ComplexityRoot.ChangePasswordPayload.Errors == nil {
 			break
@@ -144,6 +291,57 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.ChangePasswordPayload.Viewer(childComplexity), true
+
+	case "CharacterSheetPage.nodes":
+		if e.ComplexityRoot.CharacterSheetPage.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPage.Nodes(childComplexity), true
+	case "CharacterSheetPage.page":
+		if e.ComplexityRoot.CharacterSheetPage.Page == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPage.Page(childComplexity), true
+	case "CharacterSheetPage.pageSize":
+		if e.ComplexityRoot.CharacterSheetPage.PageSize == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPage.PageSize(childComplexity), true
+	case "CharacterSheetPage.totalCount":
+		if e.ComplexityRoot.CharacterSheetPage.TotalCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPage.TotalCount(childComplexity), true
+	case "CharacterSheetPage.totalPages":
+		if e.ComplexityRoot.CharacterSheetPage.TotalPages == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPage.TotalPages(childComplexity), true
+
+	case "CharacterSheetPayload.characterSheet":
+		if e.ComplexityRoot.CharacterSheetPayload.CharacterSheet == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPayload.CharacterSheet(childComplexity), true
+	case "CharacterSheetPayload.errors":
+		if e.ComplexityRoot.CharacterSheetPayload.Errors == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CharacterSheetPayload.Errors(childComplexity), true
+
+	case "DeleteCharacterSheetPayload.deletedId":
+		if e.ComplexityRoot.DeleteCharacterSheetPayload.DeletedID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DeleteCharacterSheetPayload.DeletedID(childComplexity), true
 
 	case "InputError.code":
 		if e.ComplexityRoot.InputError.Code == nil {
@@ -201,6 +399,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.ChangePassword(childComplexity, args["input"].(model.ChangePasswordInput)), true
+	case "Mutation.copyCharacterSheet":
+		if e.ComplexityRoot.Mutation.CopyCharacterSheet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_copyCharacterSheet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CopyCharacterSheet(childComplexity, args["id"].(string)), true
+	case "Mutation.createCharacterSheet":
+		if e.ComplexityRoot.Mutation.CreateCharacterSheet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createCharacterSheet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateCharacterSheet(childComplexity, args["input"].(model.CreateCharacterSheetInput)), true
+	case "Mutation.deleteCharacterSheet":
+		if e.ComplexityRoot.Mutation.DeleteCharacterSheet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCharacterSheet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteCharacterSheet(childComplexity, args["id"].(string)), true
 	case "Mutation.issueInvitation":
 		if e.ComplexityRoot.Mutation.IssueInvitation == nil {
 			break
@@ -246,6 +477,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.ResetPassword(childComplexity, args["input"].(model.ResetPasswordInput)), true
+	case "Mutation.updateCharacterSheet":
+		if e.ComplexityRoot.Mutation.UpdateCharacterSheet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCharacterSheet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateCharacterSheet(childComplexity, args["input"].(model.UpdateCharacterSheetInput)), true
 	case "Mutation.updateDisplayName":
 		if e.ComplexityRoot.Mutation.UpdateDisplayName == nil {
 			break
@@ -258,6 +500,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Mutation.UpdateDisplayName(childComplexity, args["input"].(model.UpdateDisplayNameInput)), true
 
+	case "Query.characterSheet":
+		if e.ComplexityRoot.Query.CharacterSheet == nil {
+			break
+		}
+
+		args, err := ec.field_Query_characterSheet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.CharacterSheet(childComplexity, args["id"].(string)), true
+	case "Query.characterSheets":
+		if e.ComplexityRoot.Query.CharacterSheets == nil {
+			break
+		}
+
+		args, err := ec.field_Query_characterSheets_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.CharacterSheets(childComplexity, args["filter"].(*model.CharacterSheetFilter), args["orderBy"].(model.CharacterSheetOrder), args["page"].(int)), true
 	case "Query.health":
 		if e.ComplexityRoot.Query.Health == nil {
 			break
@@ -317,6 +581,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.UpdateDisplayNamePayload.Viewer(childComplexity), true
 
+	case "User.displayName":
+		if e.ComplexityRoot.User.DisplayName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.User.DisplayName(childComplexity), true
+	case "User.id":
+		if e.ComplexityRoot.User.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.User.ID(childComplexity), true
+
 	case "Viewer.displayName":
 		if e.ComplexityRoot.Viewer.DisplayName == nil {
 			break
@@ -342,6 +619,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Viewer.LoginID(childComplexity), true
 
+	case "YuyakekoyakeSheet.age":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Age == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Age(childComplexity), true
+	case "YuyakekoyakeSheet.characterName":
+		if e.ComplexityRoot.YuyakekoyakeSheet.CharacterName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.CharacterName(childComplexity), true
+	case "YuyakekoyakeSheet.createdAt":
+		if e.ComplexityRoot.YuyakekoyakeSheet.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.CreatedAt(childComplexity), true
+	case "YuyakekoyakeSheet.data":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Data(childComplexity), true
+	case "YuyakekoyakeSheet.id":
+		if e.ComplexityRoot.YuyakekoyakeSheet.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.ID(childComplexity), true
+	case "YuyakekoyakeSheet.memo":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Memo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Memo(childComplexity), true
+	case "YuyakekoyakeSheet.owner":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Owner == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Owner(childComplexity), true
+	case "YuyakekoyakeSheet.playerName":
+		if e.ComplexityRoot.YuyakekoyakeSheet.PlayerName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.PlayerName(childComplexity), true
+	case "YuyakekoyakeSheet.revision":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Revision == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Revision(childComplexity), true
+	case "YuyakekoyakeSheet.sex":
+		if e.ComplexityRoot.YuyakekoyakeSheet.Sex == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.Sex(childComplexity), true
+	case "YuyakekoyakeSheet.system":
+		if e.ComplexityRoot.YuyakekoyakeSheet.System == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.System(childComplexity), true
+	case "YuyakekoyakeSheet.updatedAt":
+		if e.ComplexityRoot.YuyakekoyakeSheet.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.YuyakekoyakeSheet.UpdatedAt(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -352,9 +702,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalers := func() *graphql.InputUnmarshalerIndex {
 		return graphql.NewInputUnmarshalerIndex(
 			graphql.NewInputUnmarshaler("ChangePasswordInput", ec.unmarshalInputChangePasswordInput),
+			graphql.NewInputUnmarshaler("CharacterSheetFieldsInput", ec.unmarshalInputCharacterSheetFieldsInput),
+			graphql.NewInputUnmarshaler("CharacterSheetFilter", ec.unmarshalInputCharacterSheetFilter),
+			graphql.NewInputUnmarshaler("CreateCharacterSheetInput", ec.unmarshalInputCreateCharacterSheetInput),
 			graphql.NewInputUnmarshaler("LoginInput", ec.unmarshalInputLoginInput),
 			graphql.NewInputUnmarshaler("RegisterInput", ec.unmarshalInputRegisterInput),
 			graphql.NewInputUnmarshaler("ResetPasswordInput", ec.unmarshalInputResetPasswordInput),
+			graphql.NewInputUnmarshaler("UpdateCharacterSheetInput", ec.unmarshalInputUpdateCharacterSheetInput),
 			graphql.NewInputUnmarshaler("UpdateDisplayNameInput", ec.unmarshalInputUpdateDisplayNameInput),
 		)
 	}
@@ -548,6 +902,13 @@ enum InputField {
   NEW_PASSWORD
   DISPLAY_NAME
   RESET_CODE
+  # キャラクターシート（specs/003-character-sheet-base）
+  CHARACTER_NAME
+  PLAYER_NAME
+  AGE
+  SEX
+  MEMO
+  DATA
 }
 
 enum InputErrorCode {
@@ -571,6 +932,176 @@ enum InputErrorCode {
   WRONG_CURRENT_PASSWORD
   "再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない）"
   RESET_CODE_UNAVAILABLE
+  "JSON のオブジェクトでない（シートのシステム固有の部分）"
+  NOT_OBJECT
+  "大きすぎる（シートのシステム固有の部分）"
+  TOO_LARGE
+  "読み込んだ後に、別の場所で更新された（シート）"
+  REVISION_CONFLICT
+}
+`, BuiltIn: false},
+	{Name: "../../../../schema/graphql/character_sheet.graphqls", Input: `# キャラクターシートの共通基盤（specs/003-character-sheet-base）。
+# 共通の項目は interface CharacterSheet に置き、システム固有の部分は各システムの型の data（JSON）で返す
+# （constitution III）。所有者は公開用の User で返し、ログイン ID は含めない（002-auth の FR-034）。
+
+extend type Query {
+  "シートを 1 枚返す。存在しない・削除された・形の正しくない ID なら null"
+  characterSheet(id: ID!): CharacterSheet
+  "削除されていないシートの一覧。ログインは不要"
+  characterSheets(
+    filter: CharacterSheetFilter
+    orderBy: CharacterSheetOrder! = UPDATED_AT_DESC
+    "1 から始まるページ番号。範囲の外なら、範囲の中の最も近いページにする"
+    page: Int! = 1
+  ): CharacterSheetPage!
+}
+
+extend type Mutation {
+  "シートを作る（ログインが必要）。所有者はログインしている本人"
+  createCharacterSheet(input: CreateCharacterSheetInput!): CharacterSheetPayload!
+  "シートを更新する（所有者だけ）"
+  updateCharacterSheet(input: UpdateCharacterSheetInput!): CharacterSheetPayload!
+  "シートを複製する（ログインが必要）。複製の所有者はログインしている本人"
+  copyCharacterSheet(id: ID!): CharacterSheetPayload!
+  "シートを削除する（所有者だけ）。一覧と閲覧から消えるが、データは残る"
+  deleteCharacterSheet(id: ID!): DeleteCharacterSheetPayload!
+}
+
+"シートのゲームシステム"
+enum GameSystem {
+  YUYAKEKOYAKE
+  BEGINNING_IDOL
+}
+
+"公開されるユーザーの情報。ログイン ID は含めない"
+type User {
+  id: ID!
+  displayName: String!
+}
+
+"全システム共通のシートの項目"
+interface CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  "必須。1〜100 文字"
+  characterName: String!
+  "未入力は空文字列。0〜50 文字"
+  playerName: String!
+  "未入力は空文字列。0〜20 文字"
+  age: String!
+  "未入力は空文字列。0〜20 文字"
+  sex: String!
+  "未入力は空文字列。0〜10,000 文字。改行を含む"
+  memo: String!
+  "更新のたびに 1 増える。更新の入力に、読み込んだときの値を渡す"
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"ふしぎもののけRPG ゆうやけこやけ のシート"
+type YuyakekoyakeSheet implements CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  characterName: String!
+  playerName: String!
+  age: String!
+  sex: String!
+  memo: String!
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  "システム固有の部分（JSON のオブジェクト）。中身は ゆうやけこやけ の Spec で決める"
+  data: JSON!
+}
+
+"駆け出しアイドルRPG ビギニングアイドル のシート"
+type BeginningIdolSheet implements CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  characterName: String!
+  playerName: String!
+  age: String!
+  sex: String!
+  memo: String!
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  "システム固有の部分（JSON のオブジェクト）。中身は ビギニングアイドル の Spec で決める"
+  data: JSON!
+}
+
+input CharacterSheetFilter {
+  "null ならすべてのシステム"
+  system: GameSystem
+  "キャラクター名・プレイヤー名の部分一致。大文字と小文字、全角と半角を区別しない。空なら条件なし"
+  keyword: String
+  "true なら、ログインしている本人のシートだけ。ログインしていなければ無視する"
+  mine: Boolean
+}
+
+enum CharacterSheetOrder {
+  "更新日時の新しい順（既定）"
+  UPDATED_AT_DESC
+  "更新日時の古い順"
+  UPDATED_AT_ASC
+  "作成日時の新しい順"
+  CREATED_AT_DESC
+  "作成日時の古い順"
+  CREATED_AT_ASC
+  "キャラクター名の順"
+  CHARACTER_NAME_ASC
+  "キャラクター名の逆の順"
+  CHARACTER_NAME_DESC
+}
+
+type CharacterSheetPage {
+  nodes: [CharacterSheet!]!
+  "絞り込みに合うシートの件数"
+  totalCount: Int!
+  "実際に返したページ（範囲の外を丸めた後）"
+  page: Int!
+  "1 ページの件数（20）"
+  pageSize: Int!
+  "全ページ数。0 件なら 1"
+  totalPages: Int!
+}
+
+"作成と更新で共通の入力"
+input CharacterSheetFieldsInput {
+  characterName: String!
+  playerName: String! = ""
+  age: String! = ""
+  sex: String! = ""
+  memo: String! = ""
+  "JSON のオブジェクト。256KB まで"
+  data: JSON! = {}
+}
+
+input CreateCharacterSheetInput {
+  system: GameSystem!
+  fields: CharacterSheetFieldsInput!
+}
+
+input UpdateCharacterSheetInput {
+  id: ID!
+  "読み込んだときの revision。現在の値と違えば REVISION_CONFLICT"
+  revision: Int!
+  fields: CharacterSheetFieldsInput!
+}
+
+type CharacterSheetPayload {
+  "成功したときだけ値がある"
+  characterSheet: CharacterSheet
+  errors: [InputError!]!
+}
+
+type DeleteCharacterSheetPayload {
+  "削除したシートの ID"
+  deletedId: ID!
 }
 `, BuiltIn: false},
 	{Name: "../../../../schema/graphql/schema.graphqls", Input: `# chara-q の GraphQL スキーマ（API の唯一の正）
@@ -603,6 +1134,40 @@ func (ec *executionContext) childFields_ChangePasswordPayload(ctx context.Contex
 		return ec.fieldContext_ChangePasswordPayload_errors(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type ChangePasswordPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_CharacterSheetPage(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_CharacterSheetPage_nodes(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_CharacterSheetPage_totalCount(ctx, field)
+	case "page":
+		return ec.fieldContext_CharacterSheetPage_page(ctx, field)
+	case "pageSize":
+		return ec.fieldContext_CharacterSheetPage_pageSize(ctx, field)
+	case "totalPages":
+		return ec.fieldContext_CharacterSheetPage_totalPages(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CharacterSheetPage", field.Name)
+}
+
+func (ec *executionContext) childFields_CharacterSheetPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "characterSheet":
+		return ec.fieldContext_CharacterSheetPayload_characterSheet(ctx, field)
+	case "errors":
+		return ec.fieldContext_CharacterSheetPayload_errors(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CharacterSheetPayload", field.Name)
+}
+
+func (ec *executionContext) childFields_DeleteCharacterSheetPayload(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "deletedId":
+		return ec.fieldContext_DeleteCharacterSheetPayload_deletedId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type DeleteCharacterSheetPayload", field.Name)
 }
 
 func (ec *executionContext) childFields_InputError(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -667,6 +1232,16 @@ func (ec *executionContext) childFields_UpdateDisplayNamePayload(ctx context.Con
 		return ec.fieldContext_UpdateDisplayNamePayload_errors(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type UpdateDisplayNamePayload", field.Name)
+}
+
+func (ec *executionContext) childFields_User(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_User_id(ctx, field)
+	case "displayName":
+		return ec.fieldContext_User_displayName(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 }
 
 func (ec *executionContext) childFields_Viewer(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -813,6 +1388,48 @@ func (ec *executionContext) field_Mutation_changePassword_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_copyCharacterSheet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createCharacterSheet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.CreateCharacterSheetInput, error) {
+			return ec.unmarshalNCreateCharacterSheetInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCreateCharacterSheetInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteCharacterSheet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -855,6 +1472,20 @@ func (ec *executionContext) field_Mutation_resetPassword_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateCharacterSheet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.UpdateCharacterSheetInput, error) {
+			return ec.unmarshalNUpdateCharacterSheetInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateCharacterSheetInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateDisplayName_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -880,6 +1511,50 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_characterSheet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_characterSheets_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter",
+		func(ctx context.Context, v any) (*model.CharacterSheetFilter, error) {
+			return ec.unmarshalOCharacterSheetFilter2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetFilter(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (model.CharacterSheetOrder, error) {
+			return ec.unmarshalNCharacterSheetOrder2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetOrder(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["orderBy"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg2
 	return args, nil
 }
 
@@ -957,6 +1632,291 @@ func (ec *executionContext) field___Type_inputFields_args(ctx context.Context, r
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _BeginningIdolSheet_id(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "ID")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_system(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_system(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.System, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.GameSystem) graphql.Marshaler {
+			return ec.marshalNGameSystem2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_system(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "GameSystem")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_owner(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_owner(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BeginningIdolSheet().Owner(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.User) graphql.Marshaler {
+			return ec.marshalNUser2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUser(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_owner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BeginningIdolSheet",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_User(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BeginningIdolSheet_characterName(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_characterName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CharacterName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_characterName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_playerName(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_playerName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_playerName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_age(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_age(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Age, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_age(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_sex(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_sex(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Sex, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_sex(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_memo(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_memo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Memo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_memo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_revision(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_revision(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Revision, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_revision(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "Int")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "Time")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "Time")
+}
+
+func (ec *executionContext) _BeginningIdolSheet_data(ctx context.Context, field graphql.CollectedField, obj *model.BeginningIdolSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BeginningIdolSheet_data(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.JSON) graphql.Marshaler {
+			return ec.marshalNJSON2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋscalarᚐJSON(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BeginningIdolSheet_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BeginningIdolSheet", field, false, false, "JSON")
+}
+
 func (ec *executionContext) _ChangePasswordPayload_viewer(ctx context.Context, field graphql.CollectedField, obj *model.ChangePasswordPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1019,6 +1979,217 @@ func (ec *executionContext) fieldContext_ChangePasswordPayload_errors(_ context.
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _CharacterSheetPage_nodes(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPage_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.CharacterSheet) graphql.Marshaler {
+			return ec.marshalNCharacterSheet2ᚕgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPage_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CharacterSheetPage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CharacterSheetPage_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPage_totalCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPage_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CharacterSheetPage", field, false, false, "Int")
+}
+
+func (ec *executionContext) _CharacterSheetPage_page(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPage_page(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPage_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CharacterSheetPage", field, false, false, "Int")
+}
+
+func (ec *executionContext) _CharacterSheetPage_pageSize(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPage_pageSize(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageSize, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPage_pageSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CharacterSheetPage", field, false, false, "Int")
+}
+
+func (ec *executionContext) _CharacterSheetPage_totalPages(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPage_totalPages(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TotalPages, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPage_totalPages(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CharacterSheetPage", field, false, false, "Int")
+}
+
+func (ec *executionContext) _CharacterSheetPayload_characterSheet(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPayload_characterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CharacterSheet, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.CharacterSheet) graphql.Marshaler {
+			return ec.marshalOCharacterSheet2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheet(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPayload_characterSheet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CharacterSheetPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CharacterSheetPayload_errors(ctx context.Context, field graphql.CollectedField, obj *model.CharacterSheetPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CharacterSheetPayload_errors(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Errors, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.InputError) graphql.Marshaler {
+			return ec.marshalNInputError2ᚕᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputErrorᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CharacterSheetPayload_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CharacterSheetPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_InputError(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DeleteCharacterSheetPayload_deletedId(ctx context.Context, field graphql.CollectedField, obj *model.DeleteCharacterSheetPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_DeleteCharacterSheetPayload_deletedId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_DeleteCharacterSheetPayload_deletedId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("DeleteCharacterSheetPayload", field, false, false, "ID")
 }
 
 func (ec *executionContext) _InputError_field(ctx context.Context, field graphql.CollectedField, obj *model.InputError) (ret graphql.Marshaler) {
@@ -1475,6 +2646,182 @@ func (ec *executionContext) fieldContext_Mutation_issueInvitation(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createCharacterSheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createCharacterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateCharacterSheet(ctx, fc.Args["input"].(model.CreateCharacterSheetInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.CharacterSheetPayload) graphql.Marshaler {
+			return ec.marshalNCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createCharacterSheet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CharacterSheetPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createCharacterSheet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCharacterSheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateCharacterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateCharacterSheet(ctx, fc.Args["input"].(model.UpdateCharacterSheetInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.CharacterSheetPayload) graphql.Marshaler {
+			return ec.marshalNCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateCharacterSheet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CharacterSheetPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCharacterSheet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_copyCharacterSheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_copyCharacterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CopyCharacterSheet(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.CharacterSheetPayload) graphql.Marshaler {
+			return ec.marshalNCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_copyCharacterSheet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CharacterSheetPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_copyCharacterSheet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCharacterSheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteCharacterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteCharacterSheet(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.DeleteCharacterSheetPayload) graphql.Marshaler {
+			return ec.marshalNDeleteCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐDeleteCharacterSheetPayload(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteCharacterSheet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DeleteCharacterSheetPayload(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCharacterSheet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_health(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1526,6 +2873,94 @@ func (ec *executionContext) fieldContext_Query_viewer(_ context.Context, field g
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Viewer(ctx, field)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_characterSheet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_characterSheet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().CharacterSheet(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.CharacterSheet) graphql.Marshaler {
+			return ec.marshalOCharacterSheet2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheet(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_characterSheet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_characterSheet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_characterSheets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_characterSheets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().CharacterSheets(ctx, fc.Args["filter"].(*model.CharacterSheetFilter), fc.Args["orderBy"].(model.CharacterSheetOrder), fc.Args["page"].(int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.CharacterSheetPage) graphql.Marshaler {
+			return ec.marshalNCharacterSheetPage2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_characterSheets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CharacterSheetPage(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_characterSheets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1812,6 +3247,52 @@ func (ec *executionContext) fieldContext_UpdateDisplayNamePayload_errors(_ conte
 	return fc, nil
 }
 
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_User_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("User", field, false, false, "ID")
+}
+
+func (ec *executionContext) _User_displayName(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_User_displayName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_User_displayName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("User", field, false, false, "String")
+}
+
 func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1902,6 +3383,291 @@ func (ec *executionContext) _Viewer_isAdmin(ctx context.Context, field graphql.C
 }
 func (ec *executionContext) fieldContext_Viewer_isAdmin(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Viewer", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_id(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "ID")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_system(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_system(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.System, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.GameSystem) graphql.Marshaler {
+			return ec.marshalNGameSystem2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_system(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "GameSystem")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_owner(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_owner(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.YuyakekoyakeSheet().Owner(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.User) graphql.Marshaler {
+			return ec.marshalNUser2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUser(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_owner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "YuyakekoyakeSheet",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_User(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_characterName(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_characterName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CharacterName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_characterName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_playerName(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_playerName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_playerName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_age(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_age(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Age, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_age(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_sex(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_sex(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Sex, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_sex(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_memo(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_memo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Memo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_memo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "String")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_revision(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_revision(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Revision, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_revision(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "Int")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "Time")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "Time")
+}
+
+func (ec *executionContext) _YuyakekoyakeSheet_data(ctx context.Context, field graphql.CollectedField, obj *model.YuyakekoyakeSheet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_YuyakekoyakeSheet_data(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.JSON) graphql.Marshaler {
+			return ec.marshalNJSON2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋscalarᚐJSON(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_YuyakekoyakeSheet_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("YuyakekoyakeSheet", field, false, false, "JSON")
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -3026,6 +4792,204 @@ func UnmarshalChangePasswordInput(ctx context.Context, raw any) (model.ChangePas
 	return out, err
 }
 
+func (ec *executionContext) unmarshalInputCharacterSheetFieldsInput(ctx context.Context, obj any) (model.CharacterSheetFieldsInput, error) {
+	var it model.CharacterSheetFieldsInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["playerName"]; !present {
+		asMap["playerName"] = ""
+	}
+	if _, present := asMap["age"]; !present {
+		asMap["age"] = ""
+	}
+	if _, present := asMap["sex"]; !present {
+		asMap["sex"] = ""
+	}
+	if _, present := asMap["memo"]; !present {
+		asMap["memo"] = ""
+	}
+	if _, present := asMap["data"]; !present {
+		asMap["data"] = map[string]any{}
+	}
+
+	fieldsInOrder := [...]string{"characterName", "playerName", "age", "sex", "memo", "data"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "characterName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("characterName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CharacterName = data
+		case "playerName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("playerName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PlayerName = data
+		case "age":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("age"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Age = data
+		case "sex":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sex"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Sex = data
+		case "memo":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("memo"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Memo = data
+		case "data":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+			data, err := ec.unmarshalNJSON2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋscalarᚐJSON(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Data = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCharacterSheetFieldsInput unmarshals raw into the CharacterSheetFieldsInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCharacterSheetFieldsInput(ctx context.Context, raw any) (model.CharacterSheetFieldsInput, error) {
+	var out model.CharacterSheetFieldsInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CharacterSheetFieldsInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCharacterSheetFilter(ctx context.Context, obj any) (model.CharacterSheetFilter, error) {
+	var it model.CharacterSheetFilter
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"system", "keyword", "mine"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "system":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("system"))
+			data, err := ec.unmarshalOGameSystem2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.System = data
+		case "keyword":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Keyword = data
+		case "mine":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mine"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Mine = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCharacterSheetFilter unmarshals raw into the CharacterSheetFilter input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCharacterSheetFilter(ctx context.Context, raw any) (model.CharacterSheetFilter, error) {
+	var out model.CharacterSheetFilter
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CharacterSheetFilter", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateCharacterSheetInput(ctx context.Context, obj any) (model.CreateCharacterSheetInput, error) {
+	var it model.CreateCharacterSheetInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"system", "fields"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "system":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("system"))
+			data, err := ec.unmarshalNGameSystem2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.System = data
+		case "fields":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fields"))
+			data, err := ec.unmarshalNCharacterSheetFieldsInput2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetFieldsInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Fields = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateCharacterSheetInput unmarshals raw into the CreateCharacterSheetInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateCharacterSheetInput(ctx context.Context, raw any) (model.CreateCharacterSheetInput, error) {
+	var out model.CreateCharacterSheetInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateCharacterSheetInput", raw, &out)
+	return out, err
+}
+
 func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj any) (model.LoginInput, error) {
 	var it model.LoginInput
 	if obj == nil {
@@ -3194,6 +5158,62 @@ func UnmarshalResetPasswordInput(ctx context.Context, raw any) (model.ResetPassw
 	return out, err
 }
 
+func (ec *executionContext) unmarshalInputUpdateCharacterSheetInput(ctx context.Context, obj any) (model.UpdateCharacterSheetInput, error) {
+	var it model.UpdateCharacterSheetInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "revision", "fields"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "revision":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("revision"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Revision = data
+		case "fields":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fields"))
+			data, err := ec.unmarshalNCharacterSheetFieldsInput2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetFieldsInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Fields = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalUpdateCharacterSheetInput unmarshals raw into the UpdateCharacterSheetInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalUpdateCharacterSheetInput(ctx context.Context, raw any) (model.UpdateCharacterSheetInput, error) {
+	var out model.UpdateCharacterSheetInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "UpdateCharacterSheetInput", raw, &out)
+	return out, err
+}
+
 func (ec *executionContext) unmarshalInputUpdateDisplayNameInput(ctx context.Context, obj any) (model.UpdateDisplayNameInput, error) {
 	var it model.UpdateDisplayNameInput
 	if obj == nil {
@@ -3240,9 +5260,125 @@ func UnmarshalUpdateDisplayNameInput(ctx context.Context, raw any) (model.Update
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _CharacterSheet(ctx context.Context, sel ast.SelectionSet, obj model.CharacterSheet) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.YuyakekoyakeSheet:
+		return ec._YuyakekoyakeSheet(ctx, sel, &obj)
+	case *model.YuyakekoyakeSheet:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._YuyakekoyakeSheet(ctx, sel, obj)
+	case model.BeginningIdolSheet:
+		return ec._BeginningIdolSheet(ctx, sel, &obj)
+	case *model.BeginningIdolSheet:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BeginningIdolSheet(ctx, sel, obj)
+	default:
+		if typedObj, ok := obj.(graphql.Marshaler); ok {
+			return typedObj
+		} else {
+			panic(fmt.Errorf("unexpected type %T; non-generated variants of CharacterSheet must implement graphql.Marshaler", obj))
+		}
+	}
+}
+
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var beginningIdolSheetImplementors = []string{"BeginningIdolSheet", "CharacterSheet"}
+
+func (ec *executionContext) _BeginningIdolSheet(ctx context.Context, sel ast.SelectionSet, obj *model.BeginningIdolSheet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, beginningIdolSheetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BeginningIdolSheet")
+		case "id":
+			out.Values[i] = ec._BeginningIdolSheet_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "system":
+			out.Values[i] = ec._BeginningIdolSheet_system(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "owner":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._BeginningIdolSheet_owner(ctx, field, obj)
+				})
+		case "characterName":
+			out.Values[i] = ec._BeginningIdolSheet_characterName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "playerName":
+			out.Values[i] = ec._BeginningIdolSheet_playerName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "age":
+			out.Values[i] = ec._BeginningIdolSheet_age(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "sex":
+			out.Values[i] = ec._BeginningIdolSheet_sex(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "memo":
+			out.Values[i] = ec._BeginningIdolSheet_memo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "revision":
+			out.Values[i] = ec._BeginningIdolSheet_revision(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._BeginningIdolSheet_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._BeginningIdolSheet_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "data":
+			out.Values[i] = ec._BeginningIdolSheet_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
 
 var changePasswordPayloadImplementors = []string{"ChangePasswordPayload"}
 
@@ -3262,6 +5398,130 @@ func (ec *executionContext) _ChangePasswordPayload(ctx context.Context, sel ast.
 			}
 		case "errors":
 			out.Values[i] = ec._ChangePasswordPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var characterSheetPageImplementors = []string{"CharacterSheetPage"}
+
+func (ec *executionContext) _CharacterSheetPage(ctx context.Context, sel ast.SelectionSet, obj *model.CharacterSheetPage) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, characterSheetPageImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CharacterSheetPage")
+		case "nodes":
+			out.Values[i] = ec._CharacterSheetPage_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._CharacterSheetPage_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._CharacterSheetPage_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageSize":
+			out.Values[i] = ec._CharacterSheetPage_pageSize(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalPages":
+			out.Values[i] = ec._CharacterSheetPage_totalPages(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var characterSheetPayloadImplementors = []string{"CharacterSheetPayload"}
+
+func (ec *executionContext) _CharacterSheetPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CharacterSheetPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, characterSheetPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CharacterSheetPayload")
+		case "characterSheet":
+			out.Values[i] = ec._CharacterSheetPayload_characterSheet(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._CharacterSheetPayload_errors(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var deleteCharacterSheetPayloadImplementors = []string{"DeleteCharacterSheetPayload"}
+
+func (ec *executionContext) _DeleteCharacterSheetPayload(ctx context.Context, sel ast.SelectionSet, obj *model.DeleteCharacterSheetPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deleteCharacterSheetPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeleteCharacterSheetPayload")
+		case "deletedId":
+			out.Values[i] = ec._DeleteCharacterSheetPayload_deletedId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3469,6 +5729,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createCharacterSheet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createCharacterSheet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateCharacterSheet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCharacterSheet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "copyCharacterSheet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_copyCharacterSheet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteCharacterSheet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCharacterSheet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3516,6 +5804,18 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				true, false,
 				func(ctx context.Context) graphql.Marshaler {
 					return ec._Query_viewer(ctx, field)
+				})
+		case "characterSheet":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_characterSheet(ctx, field)
+				})
+		case "characterSheets":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_characterSheets(ctx, field)
 				})
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -3667,6 +5967,44 @@ func (ec *executionContext) _UpdateDisplayNamePayload(ctx context.Context, sel a
 	return out
 }
 
+var userImplementors = []string{"User"}
+
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("User")
+		case "id":
+			out.Values[i] = ec._User_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._User_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var viewerImplementors = []string{"Viewer"}
 
 func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, obj *model.Viewer) graphql.Marshaler {
@@ -3697,6 +6035,95 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Viewer_isAdmin(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var yuyakekoyakeSheetImplementors = []string{"YuyakekoyakeSheet", "CharacterSheet"}
+
+func (ec *executionContext) _YuyakekoyakeSheet(ctx context.Context, sel ast.SelectionSet, obj *model.YuyakekoyakeSheet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, yuyakekoyakeSheetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("YuyakekoyakeSheet")
+		case "id":
+			out.Values[i] = ec._YuyakekoyakeSheet_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "system":
+			out.Values[i] = ec._YuyakekoyakeSheet_system(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "owner":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._YuyakekoyakeSheet_owner(ctx, field, obj)
+				})
+		case "characterName":
+			out.Values[i] = ec._YuyakekoyakeSheet_characterName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "playerName":
+			out.Values[i] = ec._YuyakekoyakeSheet_playerName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "age":
+			out.Values[i] = ec._YuyakekoyakeSheet_age(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "sex":
+			out.Values[i] = ec._YuyakekoyakeSheet_sex(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "memo":
+			out.Values[i] = ec._YuyakekoyakeSheet_memo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "revision":
+			out.Values[i] = ec._YuyakekoyakeSheet_revision(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._YuyakekoyakeSheet_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._YuyakekoyakeSheet_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "data":
+			out.Values[i] = ec._YuyakekoyakeSheet_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4104,6 +6531,84 @@ func (ec *executionContext) marshalNChangePasswordPayload2ᚖgithubᚗcomᚋQuri
 	return ec._ChangePasswordPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCharacterSheet2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheet(ctx context.Context, sel ast.SelectionSet, v model.CharacterSheet) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "CharacterSheet!")
+		return graphql.Null
+	}
+	return ec._CharacterSheet(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCharacterSheet2ᚕgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetᚄ(ctx context.Context, sel ast.SelectionSet, v []model.CharacterSheet) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCharacterSheet2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheet(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNCharacterSheetFieldsInput2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetFieldsInput(ctx context.Context, v any) (*model.CharacterSheetFieldsInput, error) {
+	res, err := ec.unmarshalInputCharacterSheetFieldsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCharacterSheetOrder2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetOrder(ctx context.Context, v any) (model.CharacterSheetOrder, error) {
+	var res model.CharacterSheetOrder
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCharacterSheetOrder2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetOrder(ctx context.Context, sel ast.SelectionSet, v model.CharacterSheetOrder) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNCharacterSheetPage2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPage(ctx context.Context, sel ast.SelectionSet, v *model.CharacterSheetPage) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "CharacterSheetPage!")
+		return graphql.Null
+	}
+	return ec._CharacterSheetPage(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetPayload(ctx context.Context, sel ast.SelectionSet, v *model.CharacterSheetPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "CharacterSheetPayload!")
+		return graphql.Null
+	}
+	return ec._CharacterSheetPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNCreateCharacterSheetInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCreateCharacterSheetInput(ctx context.Context, v any) (model.CreateCharacterSheetInput, error) {
+	res, err := ec.unmarshalInputCreateCharacterSheetInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDeleteCharacterSheetPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐDeleteCharacterSheetPayload(ctx context.Context, sel ast.SelectionSet, v *model.DeleteCharacterSheetPayload) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "DeleteCharacterSheetPayload!")
+		return graphql.Null
+	}
+	return ec._DeleteCharacterSheetPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNGameSystem2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx context.Context, v any) (model.GameSystem, error) {
+	var res model.GameSystem
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNGameSystem2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx context.Context, sel ast.SelectionSet, v model.GameSystem) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4152,12 +6657,40 @@ func (ec *executionContext) marshalNInputErrorCode2githubᚗcomᚋQuriothᚋchar
 	return v
 }
 
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		graphql.AddInvalidNullFromMarshaler(ctx, "Int!")
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNIssueInvitationPayload2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐIssueInvitationPayload(ctx context.Context, sel ast.SelectionSet, v *model.IssueInvitationPayload) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "IssueInvitationPayload!")
 		return graphql.Null
 	}
 	return ec._IssueInvitationPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNJSON2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋscalarᚐJSON(ctx context.Context, v any) (scalar.JSON, error) {
+	var res scalar.JSON
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJSON2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋscalarᚐJSON(ctx context.Context, sel ast.SelectionSet, v scalar.JSON) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "JSON!")
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
@@ -4227,6 +6760,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
+func (ec *executionContext) unmarshalNUpdateCharacterSheetInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateCharacterSheetInput(ctx context.Context, v any) (model.UpdateCharacterSheetInput, error) {
+	res, err := ec.unmarshalInputUpdateCharacterSheetInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateDisplayNameInput2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUpdateDisplayNameInput(ctx context.Context, v any) (model.UpdateDisplayNameInput, error) {
 	res, err := ec.unmarshalInputUpdateDisplayNameInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4238,6 +6776,14 @@ func (ec *executionContext) marshalNUpdateDisplayNamePayload2ᚖgithubᚗcomᚋQ
 		return graphql.Null
 	}
 	return ec._UpdateDisplayNamePayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "User!")
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4410,6 +6956,37 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOCharacterSheet2githubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheet(ctx context.Context, sel ast.SelectionSet, v model.CharacterSheet) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CharacterSheet(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOCharacterSheetFilter2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCharacterSheetFilter(ctx context.Context, v any) (*model.CharacterSheetFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCharacterSheetFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOGameSystem2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx context.Context, v any) (*model.GameSystem, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.GameSystem)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOGameSystem2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGameSystem(ctx context.Context, sel ast.SelectionSet, v *model.GameSystem) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOInputField2ᚖgithubᚗcomᚋQuriothᚋcharaᚑqᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐInputField(ctx context.Context, v any) (*model.InputField, error) {

@@ -8,7 +8,14 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/Qurioth/chara-q/apps/api/internal/graph/scalar"
 )
+
+// 全システム共通のシートの項目
+type CharacterSheet interface {
+	IsCharacterSheet()
+}
 
 type ChangePasswordInput struct {
 	CurrentPassword string `json:"currentPassword"`
@@ -19,6 +26,54 @@ type ChangePasswordPayload struct {
 	// 成功したときだけ値がある
 	Viewer *Viewer       `json:"viewer,omitempty"`
 	Errors []*InputError `json:"errors"`
+}
+
+// 作成と更新で共通の入力
+type CharacterSheetFieldsInput struct {
+	CharacterName string `json:"characterName"`
+	PlayerName    string `json:"playerName"`
+	Age           string `json:"age"`
+	Sex           string `json:"sex"`
+	Memo          string `json:"memo"`
+	// JSON のオブジェクト。256KB まで
+	Data scalar.JSON `json:"data"`
+}
+
+type CharacterSheetFilter struct {
+	// null ならすべてのシステム
+	System *GameSystem `json:"system,omitempty"`
+	// キャラクター名・プレイヤー名の部分一致。大文字と小文字、全角と半角を区別しない。空なら条件なし
+	Keyword *string `json:"keyword,omitempty"`
+	// true なら、ログインしている本人のシートだけ。ログインしていなければ無視する
+	Mine *bool `json:"mine,omitempty"`
+}
+
+type CharacterSheetPage struct {
+	Nodes []CharacterSheet `json:"nodes"`
+	// 絞り込みに合うシートの件数
+	TotalCount int `json:"totalCount"`
+	// 実際に返したページ（範囲の外を丸めた後）
+	Page int `json:"page"`
+	// 1 ページの件数（20）
+	PageSize int `json:"pageSize"`
+	// 全ページ数。0 件なら 1
+	TotalPages int `json:"totalPages"`
+}
+
+type CharacterSheetPayload struct {
+	// 成功したときだけ値がある
+	CharacterSheet CharacterSheet `json:"characterSheet,omitempty"`
+	Errors         []*InputError  `json:"errors"`
+}
+
+type CreateCharacterSheetInput struct {
+	System GameSystem                 `json:"system"`
+	Fields *CharacterSheetFieldsInput `json:"fields"`
+}
+
+type DeleteCharacterSheetPayload struct {
+	// 削除したシートの ID
+	DeletedID string `json:"deletedId"`
 }
 
 // 利用者が入力を直せば解決する失敗
@@ -79,6 +134,13 @@ type ResetPasswordPayload struct {
 	LockedUntil *time.Time `json:"lockedUntil,omitempty"`
 }
 
+type UpdateCharacterSheetInput struct {
+	ID string `json:"id"`
+	// 読み込んだときの revision。現在の値と違えば REVISION_CONFLICT
+	Revision int                        `json:"revision"`
+	Fields   *CharacterSheetFieldsInput `json:"fields"`
+}
+
 type UpdateDisplayNameInput struct {
 	DisplayName string `json:"displayName"`
 }
@@ -89,6 +151,12 @@ type UpdateDisplayNamePayload struct {
 	Errors []*InputError `json:"errors"`
 }
 
+// 公開されるユーザーの情報。ログイン ID は含めない
+type User struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"displayName"`
+}
+
 // ログインしている本人
 type Viewer struct {
 	ID string `json:"id"`
@@ -97,6 +165,131 @@ type Viewer struct {
 	// 公開される
 	DisplayName string `json:"displayName"`
 	IsAdmin     bool   `json:"isAdmin"`
+}
+
+type CharacterSheetOrder string
+
+const (
+	// 更新日時の新しい順（既定）
+	CharacterSheetOrderUpdatedAtDesc CharacterSheetOrder = "UPDATED_AT_DESC"
+	// 更新日時の古い順
+	CharacterSheetOrderUpdatedAtAsc CharacterSheetOrder = "UPDATED_AT_ASC"
+	// 作成日時の新しい順
+	CharacterSheetOrderCreatedAtDesc CharacterSheetOrder = "CREATED_AT_DESC"
+	// 作成日時の古い順
+	CharacterSheetOrderCreatedAtAsc CharacterSheetOrder = "CREATED_AT_ASC"
+	// キャラクター名の順
+	CharacterSheetOrderCharacterNameAsc CharacterSheetOrder = "CHARACTER_NAME_ASC"
+	// キャラクター名の逆の順
+	CharacterSheetOrderCharacterNameDesc CharacterSheetOrder = "CHARACTER_NAME_DESC"
+)
+
+var AllCharacterSheetOrder = []CharacterSheetOrder{
+	CharacterSheetOrderUpdatedAtDesc,
+	CharacterSheetOrderUpdatedAtAsc,
+	CharacterSheetOrderCreatedAtDesc,
+	CharacterSheetOrderCreatedAtAsc,
+	CharacterSheetOrderCharacterNameAsc,
+	CharacterSheetOrderCharacterNameDesc,
+}
+
+func (e CharacterSheetOrder) IsValid() bool {
+	switch e {
+	case CharacterSheetOrderUpdatedAtDesc, CharacterSheetOrderUpdatedAtAsc, CharacterSheetOrderCreatedAtDesc, CharacterSheetOrderCreatedAtAsc, CharacterSheetOrderCharacterNameAsc, CharacterSheetOrderCharacterNameDesc:
+		return true
+	}
+	return false
+}
+
+func (e CharacterSheetOrder) String() string {
+	return string(e)
+}
+
+func (e *CharacterSheetOrder) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CharacterSheetOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CharacterSheetOrder", str)
+	}
+	return nil
+}
+
+func (e CharacterSheetOrder) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *CharacterSheetOrder) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e CharacterSheetOrder) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+// シートのゲームシステム
+type GameSystem string
+
+const (
+	GameSystemYuyakekoyake  GameSystem = "YUYAKEKOYAKE"
+	GameSystemBeginningIdol GameSystem = "BEGINNING_IDOL"
+)
+
+var AllGameSystem = []GameSystem{
+	GameSystemYuyakekoyake,
+	GameSystemBeginningIdol,
+}
+
+func (e GameSystem) IsValid() bool {
+	switch e {
+	case GameSystemYuyakekoyake, GameSystemBeginningIdol:
+		return true
+	}
+	return false
+}
+
+func (e GameSystem) String() string {
+	return string(e)
+}
+
+func (e *GameSystem) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = GameSystem(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid GameSystem", str)
+	}
+	return nil
+}
+
+func (e GameSystem) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *GameSystem) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e GameSystem) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type InputErrorCode string
@@ -122,6 +315,12 @@ const (
 	InputErrorCodeWrongCurrentPassword InputErrorCode = "WRONG_CURRENT_PASSWORD"
 	// 再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない）
 	InputErrorCodeResetCodeUnavailable InputErrorCode = "RESET_CODE_UNAVAILABLE"
+	// JSON のオブジェクトでない（シートのシステム固有の部分）
+	InputErrorCodeNotObject InputErrorCode = "NOT_OBJECT"
+	// 大きすぎる（シートのシステム固有の部分）
+	InputErrorCodeTooLarge InputErrorCode = "TOO_LARGE"
+	// 読み込んだ後に、別の場所で更新された（シート）
+	InputErrorCodeRevisionConflict InputErrorCode = "REVISION_CONFLICT"
 )
 
 var AllInputErrorCode = []InputErrorCode{
@@ -135,11 +334,14 @@ var AllInputErrorCode = []InputErrorCode{
 	InputErrorCodeLocked,
 	InputErrorCodeWrongCurrentPassword,
 	InputErrorCodeResetCodeUnavailable,
+	InputErrorCodeNotObject,
+	InputErrorCodeTooLarge,
+	InputErrorCodeRevisionConflict,
 }
 
 func (e InputErrorCode) IsValid() bool {
 	switch e {
-	case InputErrorCodeRequired, InputErrorCodeTooShort, InputErrorCodeTooLong, InputErrorCodeInvalidCharacters, InputErrorCodeInvitationUnavailable, InputErrorCodeLoginIDTaken, InputErrorCodeInvalidCredentials, InputErrorCodeLocked, InputErrorCodeWrongCurrentPassword, InputErrorCodeResetCodeUnavailable:
+	case InputErrorCodeRequired, InputErrorCodeTooShort, InputErrorCodeTooLong, InputErrorCodeInvalidCharacters, InputErrorCodeInvitationUnavailable, InputErrorCodeLoginIDTaken, InputErrorCodeInvalidCredentials, InputErrorCodeLocked, InputErrorCodeWrongCurrentPassword, InputErrorCodeResetCodeUnavailable, InputErrorCodeNotObject, InputErrorCodeTooLarge, InputErrorCodeRevisionConflict:
 		return true
 	}
 	return false
@@ -190,6 +392,12 @@ const (
 	InputFieldNewPassword     InputField = "NEW_PASSWORD"
 	InputFieldDisplayName     InputField = "DISPLAY_NAME"
 	InputFieldResetCode       InputField = "RESET_CODE"
+	InputFieldCharacterName   InputField = "CHARACTER_NAME"
+	InputFieldPlayerName      InputField = "PLAYER_NAME"
+	InputFieldAge             InputField = "AGE"
+	InputFieldSex             InputField = "SEX"
+	InputFieldMemo            InputField = "MEMO"
+	InputFieldData            InputField = "DATA"
 )
 
 var AllInputField = []InputField{
@@ -200,11 +408,17 @@ var AllInputField = []InputField{
 	InputFieldNewPassword,
 	InputFieldDisplayName,
 	InputFieldResetCode,
+	InputFieldCharacterName,
+	InputFieldPlayerName,
+	InputFieldAge,
+	InputFieldSex,
+	InputFieldMemo,
+	InputFieldData,
 }
 
 func (e InputField) IsValid() bool {
 	switch e {
-	case InputFieldInvitationCode, InputFieldLoginID, InputFieldPassword, InputFieldCurrentPassword, InputFieldNewPassword, InputFieldDisplayName, InputFieldResetCode:
+	case InputFieldInvitationCode, InputFieldLoginID, InputFieldPassword, InputFieldCurrentPassword, InputFieldNewPassword, InputFieldDisplayName, InputFieldResetCode, InputFieldCharacterName, InputFieldPlayerName, InputFieldAge, InputFieldSex, InputFieldMemo, InputFieldData:
 		return true
 	}
 	return false

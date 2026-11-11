@@ -26,3 +26,7 @@ WHERE id = @id AND disabled_at IS NULL;
 -- name: EnableUser :execrows
 UPDATE users SET disabled_at = NULL, updated_at = @now
 WHERE id = @id AND disabled_at IS NOT NULL;
+
+-- name: ListUsersByIDs :many
+-- シートの所有者の DataLoader 用（specs/003-character-sheet-base）。無効なユーザーも含める。
+SELECT id, display_name FROM users WHERE id = ANY(@ids::uuid[]);

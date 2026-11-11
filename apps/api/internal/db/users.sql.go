@@ -138,6 +138,36 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const listUsersByIDs = `-- name: ListUsersByIDs :many
+SELECT id, display_name FROM users WHERE id = ANY($1::uuid[])
+`
+
+type ListUsersByIDsRow struct {
+	ID          uuid.UUID `json:"id"`
+	DisplayName string    `json:"display_name"`
+}
+
+// シートの所有者の DataLoader 用（specs/003-character-sheet-base）。無効なユーザーも含める。
+func (q *Queries) ListUsersByIDs(ctx context.Context, ids []uuid.UUID) ([]ListUsersByIDsRow, error) {
+	rows, err := q.db.Query(ctx, listUsersByIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsersByIDsRow{}
+	for rows.Next() {
+		var i ListUsersByIDsRow
+		if err := rows.Scan(&i.ID, &i.DisplayName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateDisplayName = `-- name: UpdateDisplayName :one
 UPDATE users SET display_name = $1, updated_at = $2
 WHERE id = $3

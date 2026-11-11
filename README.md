@@ -99,6 +99,11 @@ http://localhost:3000/login でログインし、ヘッダーのメニューの�
 
 `task --list` ですべてのタスクを確認できる。
 
+### 削除したシートを戻す
+
+シートの削除はデータを残す論理削除で、戻す操作はアプリにない。所有者から連絡を受けたら、管理者が DB に
+接続して [data-model.md の「削除の取り消し」](specs/003-character-sheet-base/data-model.md) の SQL を実行する。
+
 ## 開発の進め方
 
 機能は Spec Kit で、設計書を作りながら 1 つずつ実装する。
@@ -124,7 +129,7 @@ type・scope・フッターなどのルールは [CLAUDE.md の「コミット�
 UI ライブラリは Tailwind CSS と shadcn/ui に決定した（[ADR 0004](docs/adr/0004-ui-library.md)）。
 shadcn/ui の土台（Base UI）、テーマ、フォント、web のテスト（Vitest）は [ADR 0007](docs/adr/0007-ui-foundation.md) で決めた。
 シートの公開範囲と既存シートの所有者も決定済み（[ADR 0005](docs/adr/0005-sheet-access-and-legacy-owner.md)）。
-一覧・検索・閲覧は誰でもでき、更新は所有者だけができる。既存シートはシステム管理者ユーザーの所有にする。
+一覧・検索・閲覧は誰でもでき、更新と削除は所有者だけができる。既存シートはシステム管理者ユーザーの所有にする。
 認証も決定済み（[ADR 0006](docs/adr/0006-authentication.md)）。ログイン ID・パスワード・管理者が発行した
 招待コードで登録し、メールアドレスは持たない。api へは Vercel から中継し、ログイン状態は DB セッションで持つ。
 
@@ -132,7 +137,7 @@ shadcn/ui の土台（Base UI）、テーマ、フォント、web のテスト�
 
 1. ✅ UI 基盤（Tailwind CSS と shadcn/ui の導入、ヘッダー・フッター、ダークモード、フォント、共通の入力部品）: [specs/001-ui-foundation](specs/001-ui-foundation/)
 2. 認証（招待コードでの登録、ログイン、Vercel 経由の中継、DB セッション、管理者用のコマンド）
-3. キャラクターシートの共通基盤（`interface CharacterSheet`、DB テーブル、一覧・検索・取得・作成・更新）
+3. キャラクターシートの共通基盤（`interface CharacterSheet`、DB テーブル、一覧・検索・閲覧の画面（`/sheets`）、作成・更新・複製・削除の API）: [specs/003-character-sheet-base](specs/003-character-sheet-base/)
 4. 本番環境の構築とデプロイ（Cloud Run、Artifact Registry、予算アラート、Neon、Vercel）
 5. ゆうやけこやけのシート
 6. ビギニングアイドルのシート（サイコロ・フィクションの特技表を含む）

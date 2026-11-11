@@ -18,6 +18,22 @@ type AuthFailure struct {
 	LockedUntil  *time.Time `json:"locked_until"`
 }
 
+type CharacterSheet struct {
+	ID            uuid.UUID  `json:"id"`
+	System        string     `json:"system"`
+	OwnerID       uuid.UUID  `json:"owner_id"`
+	CharacterName string     `json:"character_name"`
+	PlayerName    string     `json:"player_name"`
+	Age           string     `json:"age"`
+	Sex           string     `json:"sex"`
+	Memo          string     `json:"memo"`
+	Data          []byte     `json:"data"`
+	Revision      int32      `json:"revision"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	DeletedAt     *time.Time `json:"deleted_at"`
+}
+
 type Invitation struct {
 	ID        uuid.UUID  `json:"id"`
 	CodeHash  []byte     `json:"code_hash"`

@@ -16,14 +16,20 @@ import (
 const (
 	codeUnauthenticated = "UNAUTHENTICATED"
 	codeForbidden       = "FORBIDDEN"
+	codeNotFound        = "NOT_FOUND"
 )
 
 func errUnauthenticated() error {
 	return &gqlerror.Error{Message: "ログインが必要です", Extensions: map[string]any{"code": codeUnauthenticated}}
 }
 
+// errForbidden は、管理者だけの操作（002-auth）と、所有者だけの操作（003-character-sheet-base）の両方で使う。
 func errForbidden() error {
-	return &gqlerror.Error{Message: "管理者だけが行えます", Extensions: map[string]any{"code": codeForbidden}}
+	return &gqlerror.Error{Message: "この操作は行えません", Extensions: map[string]any{"code": codeForbidden}}
+}
+
+func errNotFound() error {
+	return &gqlerror.Error{Message: "シートが見つかりません", Extensions: map[string]any{"code": codeNotFound}}
 }
 
 // noErrors は payload の errors に入れる空の一覧。

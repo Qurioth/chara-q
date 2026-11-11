@@ -126,3 +126,27 @@ func TestNoCORSOnPreflight(t *testing.T) {
 		}
 	}
 }
+
+// TestBodyLimit は、1MB を超える本体の /graphql への POST を処理しないことを確かめる
+// （specs/003-character-sheet-base の research R11）。
+func TestBodyLimit(t *testing.T) {
+	h := newHandler()
+	post := func(body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/graphql", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	pad := func(n int) string {
+		return `{"query":"{ __typename }","variables":{"pad":"` + strings.Repeat("x", n) + `"}}`
+	}
+
+	if rec := post(pad(1000)); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"__typename":"Query"`) {
+		t.Fatalf("小さな本体は処理するはず: %d %s", rec.Code, rec.Body.String())
+	}
+	rec := post(pad(1 << 20))
+	if strings.Contains(rec.Body.String(), `"__typename":"Query"`) {
+		t.Fatalf("1MB を超える本体は処理しないはず: %d", rec.Code)
+	}
+}

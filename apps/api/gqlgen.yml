@@ -18,6 +18,8 @@ resolver:
   filename_template: "{name}.resolvers.go"
 
 omit_gqlgen_version_in_file_notice: true
+# interface の getter を作らない。シートの型は所有者を ID だけで持つため（internal/graph/model/sheet.go）
+omit_getters: true
 
 models:
   JSON:
@@ -26,3 +28,16 @@ models:
   Time:
     model:
       - github.com/99designs/gqlgen/graphql.Time
+  # シートの型は手で書く（specs/003-character-sheet-base の research R3）。owner は DataLoader で引く
+  YuyakekoyakeSheet:
+    model:
+      - github.com/Qurioth/chara-q/apps/api/internal/graph/model.YuyakekoyakeSheet
+    fields:
+      owner:
+        resolver: true
+  BeginningIdolSheet:
+    model:
+      - github.com/Qurioth/chara-q/apps/api/internal/graph/model.BeginningIdolSheet
+    fields:
+      owner:
+        resolver: true
