@@ -1,0 +1,163 @@
+# キャラクターシートの共通基盤（specs/003-character-sheet-base）。
+# 共通の項目は interface CharacterSheet に置き、システム固有の部分は各システムの型の data（JSON）で返す
+# （constitution III）。所有者は公開用の User で返し、ログイン ID は含めない（002-auth の FR-034）。
+
+extend type Query {
+  "シートを 1 枚返す。存在しない・削除された・形の正しくない ID なら null"
+  characterSheet(id: ID!): CharacterSheet
+  "削除されていないシートの一覧。ログインは不要"
+  characterSheets(
+    filter: CharacterSheetFilter
+    orderBy: CharacterSheetOrder! = UPDATED_AT_DESC
+    "1 から始まるページ番号。範囲の外なら、範囲の中の最も近いページにする"
+    page: Int! = 1
+  ): CharacterSheetPage!
+}
+
+extend type Mutation {
+  "シートを作る（ログインが必要）。所有者はログインしている本人"
+  createCharacterSheet(input: CreateCharacterSheetInput!): CharacterSheetPayload!
+  "シートを更新する（所有者だけ）"
+  updateCharacterSheet(input: UpdateCharacterSheetInput!): CharacterSheetPayload!
+  "シートを複製する（ログインが必要）。複製の所有者はログインしている本人"
+  copyCharacterSheet(id: ID!): CharacterSheetPayload!
+  "シートを削除する（所有者だけ）。一覧と閲覧から消えるが、データは残る"
+  deleteCharacterSheet(id: ID!): DeleteCharacterSheetPayload!
+}
+
+"シートのゲームシステム"
+enum GameSystem {
+  YUYAKEKOYAKE
+  BEGINNING_IDOL
+}
+
+"公開されるユーザーの情報。ログイン ID は含めない"
+type User {
+  id: ID!
+  displayName: String!
+}
+
+"全システム共通のシートの項目"
+interface CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  "必須。1〜100 文字"
+  characterName: String!
+  "未入力は空文字列。0〜50 文字"
+  playerName: String!
+  "未入力は空文字列。0〜20 文字"
+  age: String!
+  "未入力は空文字列。0〜20 文字"
+  sex: String!
+  "未入力は空文字列。0〜10,000 文字。改行を含む"
+  memo: String!
+  "更新のたびに 1 増える。更新の入力に、読み込んだときの値を渡す"
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"ふしぎもののけRPG ゆうやけこやけ のシート"
+type YuyakekoyakeSheet implements CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  characterName: String!
+  playerName: String!
+  age: String!
+  sex: String!
+  memo: String!
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  "システム固有の部分（JSON のオブジェクト）。中身は ゆうやけこやけ の Spec で決める"
+  data: JSON!
+}
+
+"駆け出しアイドルRPG ビギニングアイドル のシート"
+type BeginningIdolSheet implements CharacterSheet {
+  id: ID!
+  system: GameSystem!
+  owner: User!
+  characterName: String!
+  playerName: String!
+  age: String!
+  sex: String!
+  memo: String!
+  revision: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  "システム固有の部分（JSON のオブジェクト）。中身は ビギニングアイドル の Spec で決める"
+  data: JSON!
+}
+
+input CharacterSheetFilter {
+  "null ならすべてのシステム"
+  system: GameSystem
+  "キャラクター名・プレイヤー名の部分一致。大文字と小文字、全角と半角を区別しない。空なら条件なし"
+  keyword: String
+  "true なら、ログインしている本人のシートだけ。ログインしていなければ無視する"
+  mine: Boolean
+}
+
+enum CharacterSheetOrder {
+  "更新日時の新しい順（既定）"
+  UPDATED_AT_DESC
+  "更新日時の古い順"
+  UPDATED_AT_ASC
+  "作成日時の新しい順"
+  CREATED_AT_DESC
+  "作成日時の古い順"
+  CREATED_AT_ASC
+  "キャラクター名の順"
+  CHARACTER_NAME_ASC
+  "キャラクター名の逆の順"
+  CHARACTER_NAME_DESC
+}
+
+type CharacterSheetPage {
+  nodes: [CharacterSheet!]!
+  "絞り込みに合うシートの件数"
+  totalCount: Int!
+  "実際に返したページ（範囲の外を丸めた後）"
+  page: Int!
+  "1 ページの件数（20）"
+  pageSize: Int!
+  "全ページ数。0 件なら 1"
+  totalPages: Int!
+}
+
+"作成と更新で共通の入力"
+input CharacterSheetFieldsInput {
+  characterName: String!
+  playerName: String! = ""
+  age: String! = ""
+  sex: String! = ""
+  memo: String! = ""
+  "JSON のオブジェクト。256KB まで"
+  data: JSON! = {}
+}
+
+input CreateCharacterSheetInput {
+  system: GameSystem!
+  fields: CharacterSheetFieldsInput!
+}
+
+input UpdateCharacterSheetInput {
+  id: ID!
+  "読み込んだときの revision。現在の値と違えば REVISION_CONFLICT"
+  revision: Int!
+  fields: CharacterSheetFieldsInput!
+}
+
+type CharacterSheetPayload {
+  "成功したときだけ値がある"
+  characterSheet: CharacterSheet
+  errors: [InputError!]!
+}
+
+type DeleteCharacterSheetPayload {
+  "削除したシートの ID"
+  deletedId: ID!
+}

@@ -9,12 +9,14 @@ import (
 	"github.com/Qurioth/chara-q/apps/api/internal/auth"
 	"github.com/Qurioth/chara-q/apps/api/internal/db"
 	"github.com/Qurioth/chara-q/apps/api/internal/graph/model"
+	"github.com/Qurioth/chara-q/apps/api/internal/sheet"
 )
 
 // Resolver は resolver が使う依存をまとめる。
 type Resolver struct {
 	Queries *db.Queries
 	Auth    *auth.Service
+	Sheets  *sheet.Service
 }
 
 // graphqlTime はスキーマの Time に対応する Go の型。

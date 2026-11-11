@@ -20,10 +20,16 @@ export type InputErrorCode =
   | 'LOCKED'
   /** ログイン ID が使われている */
   | 'LOGIN_ID_TAKEN'
+  /** JSON のオブジェクトでない（シートのシステム固有の部分） */
+  | 'NOT_OBJECT'
   /** 未入力 */
   | 'REQUIRED'
   /** 再設定コードが存在しない・使用済み・期限切れ・別のユーザー用、またはユーザーが無効（区別しない） */
   | 'RESET_CODE_UNAVAILABLE'
+  /** 読み込んだ後に、別の場所で更新された（シート） */
+  | 'REVISION_CONFLICT'
+  /** 大きすぎる（シートのシステム固有の部分） */
+  | 'TOO_LARGE'
   /** 長すぎる */
   | 'TOO_LONG'
   /** 短すぎる */
@@ -32,13 +38,19 @@ export type InputErrorCode =
   | 'WRONG_CURRENT_PASSWORD';
 
 export type InputField =
+  | 'AGE'
+  | 'CHARACTER_NAME'
   | 'CURRENT_PASSWORD'
+  | 'DATA'
   | 'DISPLAY_NAME'
   | 'INVITATION_CODE'
   | 'LOGIN_ID'
+  | 'MEMO'
   | 'NEW_PASSWORD'
   | 'PASSWORD'
-  | 'RESET_CODE';
+  | 'PLAYER_NAME'
+  | 'RESET_CODE'
+  | 'SEX';
 
 export type LoginInput = {
   loginId: string;

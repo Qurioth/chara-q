@@ -20,6 +20,7 @@ import (
 	"github.com/Qurioth/chara-q/apps/api/internal/db"
 	"github.com/Qurioth/chara-q/apps/api/internal/graph"
 	"github.com/Qurioth/chara-q/apps/api/internal/server"
+	"github.com/Qurioth/chara-q/apps/api/internal/sheet"
 )
 
 func main() {
@@ -54,8 +55,12 @@ func run(logger *slog.Logger) error {
 	}
 
 	srv := &http.Server{
-		Addr:              ":" + strconv.Itoa(cfg.Port),
-		Handler:           server.New(cfg, &graph.Resolver{Queries: queries, Auth: auth.NewService(pool, logger)}, logger),
+		Addr: ":" + strconv.Itoa(cfg.Port),
+		Handler: server.New(cfg, &graph.Resolver{
+			Queries: queries,
+			Auth:    auth.NewService(pool, logger),
+			Sheets:  sheet.NewService(pool, logger),
+		}, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

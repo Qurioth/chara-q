@@ -11,6 +11,13 @@ export const fieldLabels: Record<InputField, string> = {
   NEW_PASSWORD: "新しいパスワード",
   DISPLAY_NAME: "表示名",
   RESET_CODE: "再設定コード",
+  // キャラクターシート（specs/003-character-sheet-base）
+  CHARACTER_NAME: "キャラクター名",
+  PLAYER_NAME: "プレイヤー名",
+  AGE: "年齢",
+  SEX: "性別",
+  MEMO: "メモ",
+  DATA: "シートの内容",
 };
 
 const minLength: Partial<Record<InputField, number>> = {
@@ -24,6 +31,11 @@ const maxLength: Partial<Record<InputField, number>> = {
   PASSWORD: PASSWORD_MAX,
   NEW_PASSWORD: PASSWORD_MAX,
   DISPLAY_NAME: DISPLAY_NAME_MAX,
+  CHARACTER_NAME: 100,
+  PLAYER_NAME: 50,
+  AGE: 20,
+  SEX: 20,
+  MEMO: 10000,
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -71,6 +83,12 @@ export function inputErrorMessage(field: InputField | null | undefined, code: In
       return "現在のパスワードが違います";
     case "RESET_CODE_UNAVAILABLE":
       return "この再設定コードは使えません。管理者に確認してください";
+    case "NOT_OBJECT":
+      return `${subject}の形が正しくありません`;
+    case "TOO_LARGE":
+      return `${subject}が大きすぎます`;
+    case "REVISION_CONFLICT":
+      return "ほかの場所でシートが更新されました。読み込み直してから、もう一度保存してください";
   }
 }
 

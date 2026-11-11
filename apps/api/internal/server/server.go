@@ -17,6 +17,7 @@ import (
 
 	"github.com/Qurioth/chara-q/apps/api/internal/config"
 	"github.com/Qurioth/chara-q/apps/api/internal/graph"
+	"github.com/Qurioth/chara-q/apps/api/internal/loader"
 )
 
 // New は API のルーターを返す。
@@ -33,8 +34,10 @@ func New(cfg config.Config, resolver *graph.Resolver, logger *slog.Logger) http.
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// セッションの Cookie から本人を読む（ADR 0006）
-	r.With(resolver.Auth.Middleware).Handle("/graphql", newGraphQLHandler(cfg, resolver, logger))
+	// リクエストの本体の大きさを制限し（シートのシステム固有の部分は 256KB まで、specs/003-character-sheet-base の
+	// research R11）、セッションの Cookie から本人を読み（ADR 0006）、リクエストごとの DataLoader を用意する
+	r.With(limitBody(maxBodyBytes), resolver.Auth.Middleware, loader.Middleware(resolver.Queries)).
+		Handle("/graphql", newGraphQLHandler(cfg, resolver, logger))
 	if cfg.Development {
 		r.Handle("/playground", playground.Handler("chara-q GraphQL", "/graphql"))
 	}
@@ -56,6 +59,19 @@ func newGraphQLHandler(cfg config.Config, resolver *graph.Resolver, logger *slog
 	}
 	srv.Use(extension.AutomaticPersistedQuery{Cache: lru.New[string](100)})
 	return srv
+}
+
+// maxBodyBytes は /graphql のリクエストの本体の上限（1MB）。
+const maxBodyBytes = 1 << 20
+
+// limitBody は、上限を超えるリクエストの本体を読めなくする。
+func limitBody(n int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, n)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {

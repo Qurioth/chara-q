@@ -3,78 +3,12 @@ package graph_test
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/Qurioth/chara-q/apps/api/internal/auth"
 	"github.com/Qurioth/chara-q/apps/api/internal/auth/authtest"
-	"github.com/Qurioth/chara-q/apps/api/internal/config"
-	"github.com/Qurioth/chara-q/apps/api/internal/graph"
-	"github.com/Qurioth/chara-q/apps/api/internal/server"
 )
-
-type client struct {
-	t     *testing.T
-	h     http.Handler
-	token string
-}
-
-type gqlResponse struct {
-	Data   map[string]json.RawMessage `json:"data"`
-	Errors []struct {
-		Message    string         `json:"message"`
-		Extensions map[string]any `json:"extensions"`
-	} `json:"errors"`
-	setCookie string
-	raw       string
-}
-
-func newClient(t *testing.T, env *authtest.Env) *client {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h := server.New(config.Config{}, &graph.Resolver{Queries: env.Queries, Auth: env.Service}, logger)
-	return &client{t: t, h: h}
-}
-
-// do は /graphql に POST する。応答の Set-Cookie のセッション ID を、次のリクエストの Cookie にする
-// （httptest は https ではないため、Secure の Cookie を手で受け渡す）。
-func (c *client) do(query string, vars map[string]any) gqlResponse {
-	c.t.Helper()
-	body, _ := json.Marshal(map[string]any{"query": query, "variables": vars})
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/graphql", strings.NewReader(string(body)))
-	req.Header.Set("Content-Type", "application/json")
-	if c.token != "" {
-		req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: c.token})
-	}
-	rec := httptest.NewRecorder()
-	c.h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		c.t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
-	}
-	var resp gqlResponse
-	resp.raw = rec.Body.String()
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-		c.t.Fatalf("json: %v", err)
-	}
-	resp.setCookie = rec.Header().Get("Set-Cookie")
-	for _, sc := range rec.Result().Cookies() {
-		if sc.Name == auth.SessionCookieName {
-			c.token = sc.Value
-		}
-	}
-	return resp
-}
-
-func (r gqlResponse) errorCode() string {
-	if len(r.Errors) == 0 {
-		return ""
-	}
-	code, _ := r.Errors[0].Extensions["code"].(string)
-	return code
-}
 
 const viewerQuery = `{ viewer { id loginId displayName isAdmin } }`
 
